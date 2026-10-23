@@ -359,22 +359,22 @@ class RssServiceTest {
   @Test
   void testPlaylistRssFeedDescriptionFallsBackToCustomTitleWhenDescriptionNull() throws Exception {
     Playlist playlist = new Playlist();
-    playlist.setId("PLMF0Z3Vm69ZdEtsbIsJ1ZjmE7TQ3T0qKL");
-    playlist.setTitle("بودكاست صلة");
-    playlist.setCustomTitle("Sila Podcast");
+    playlist.setId("PLtestplaylist0001");
+    playlist.setTitle("Weekly Tech Talks");
+    playlist.setCustomTitle("Tech Talks Podcast");
     playlist.setSource("YOUTUBE");
     playlist.setDescription(null);
 
-    when(playlistService.playlistDetail("PLMF0Z3Vm69ZdEtsbIsJ1ZjmE7TQ3T0qKL")).thenReturn(playlist);
+    when(playlistService.playlistDetail("PLtestplaylist0001")).thenReturn(playlist);
     when(episodeService.getVisibleCompletedEpisodesForPlaylist(playlist)).thenReturn(Collections.emptyList());
     when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
 
-    String rssXml = rssService.generatePlaylistRssFeed("PLMF0Z3Vm69ZdEtsbIsJ1ZjmE7TQ3T0qKL");
+    String rssXml = rssService.generatePlaylistRssFeed("PLtestplaylist0001");
 
     assertNotNull(rssXml);
-    assertTrue(rssXml.contains("<description>Sila Podcast</description>"),
+    assertTrue(rssXml.contains("<description>Tech Talks Podcast</description>"),
         "RSS channel description must fall back to the displayed feed title");
-    assertTrue(rssXml.contains("<itunes:summary>Sila Podcast</itunes:summary>"),
+    assertTrue(rssXml.contains("<itunes:summary>Tech Talks Podcast</itunes:summary>"),
         "itunes:summary must fall back to the displayed feed title");
   }
 
@@ -426,7 +426,7 @@ class RssServiceTest {
   void testPlaylistRssFeedUsesAuthorForItunesAuthor() throws Exception {
     Playlist playlist = new Playlist();
     playlist.setId("PLauthor");
-    playlist.setTitle("بودكاست صلة");
+    playlist.setTitle("Weekly Tech Talks");
     playlist.setAuthor("Owner Channel");
     playlist.setSource("YOUTUBE");
     playlist.setDescription("Playlist description");
@@ -440,7 +440,7 @@ class RssServiceTest {
     assertNotNull(rssXml);
     assertTrue(rssXml.contains("<itunes:author>Owner Channel</itunes:author>"),
         "itunes:author must use the feed author when set");
-    assertTrue(rssXml.contains("<title>بودكاست صلة</title>"),
+    assertTrue(rssXml.contains("<title>Weekly Tech Talks</title>"),
         "feed title must stay the playlist name");
   }
 

@@ -67,12 +67,12 @@ class FeedAuthorPrefillTest {
 
   @Test
   void fetchYoutubePlaylistPrefillsAuthorWithOwnerChannelName() {
-    String playlistUrl = "https://www.youtube.com/playlist?list=PLMF0Z3Vm69ZdEtsbIsJ1ZjmE7TQ3T0qKL";
+    String playlistUrl = "https://www.youtube.com/playlist?list=PLtestplaylist0001";
     com.google.api.services.youtube.model.Playlist ytPlaylist =
         new com.google.api.services.youtube.model.Playlist()
-            .setId("PLMF0Z3Vm69ZdEtsbIsJ1ZjmE7TQ3T0qKL")
+            .setId("PLtestplaylist0001")
             .setSnippet(new PlaylistSnippet()
-                .setTitle("بودكاست صلة")
+                .setTitle("Weekly Tech Talks")
                 .setChannelId("UCowner")
                 .setChannelTitle("Owner Channel")
                 .setDescription(""));
@@ -97,7 +97,7 @@ class FeedAuthorPrefillTest {
 
     FeedPack<Playlist> result = playlistService.fetchPlaylist(playlistUrl);
 
-    assertEquals("بودكاست صلة", result.getFeed().getTitle());
+    assertEquals("Weekly Tech Talks", result.getFeed().getTitle());
     assertEquals("Owner Channel", result.getFeed().getAuthor());
   }
 

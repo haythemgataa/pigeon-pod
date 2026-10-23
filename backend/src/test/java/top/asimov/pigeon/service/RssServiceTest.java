@@ -22,6 +22,7 @@ import org.springframework.context.MessageSource;
 import top.asimov.pigeon.config.AppBaseUrlResolver;
 import top.asimov.pigeon.model.entity.Channel;
 import top.asimov.pigeon.model.entity.Episode;
+import top.asimov.pigeon.model.entity.Playlist;
 import top.asimov.pigeon.model.entity.SystemConfig;
 
 @ExtendWith(MockitoExtension.class)
@@ -330,6 +331,70 @@ class RssServiceTest {
     assertNotNull(rssXml);
     assertTrue(rssXml.contains("<language>en</language>"),
         "RSS channel must fallback to builtin default 'en' when all language configs are empty");
+  }
+
+  @Test
+  void testRssFeedDescriptionFallsBackToTitleWhenChannelDescriptionEmpty() throws Exception {
+    Channel channel = new Channel();
+    channel.setId("no_desc_channel");
+    channel.setTitle("No Description Channel");
+    channel.setSource("YOUTUBE");
+    channel.setDescription("");
+
+    when(channelService.findChannelByIdentification("no_desc_channel")).thenReturn(channel);
+    when(episodeService.getVisibleCompletedEpisodesForChannel(channel)).thenReturn(Collections.emptyList());
+    when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
+
+    String rssXml = rssService.generateRssFeed("no_desc_channel");
+
+    assertNotNull(rssXml);
+    assertTrue(rssXml.contains("<description>No Description Channel</description>"),
+        "RSS channel description must fall back to the feed title when the source has none");
+    assertTrue(rssXml.contains("<itunes:summary>No Description Channel</itunes:summary>"),
+        "itunes:summary must fall back to the feed title when the source has none");
+    assertFalse(rssXml.contains("<description />"), "RSS channel must not contain an empty description");
+    assertFalse(rssXml.contains("<itunes:summary />"), "RSS channel must not contain an empty itunes:summary");
+  }
+
+  @Test
+  void testPlaylistRssFeedDescriptionFallsBackToCustomTitleWhenDescriptionNull() throws Exception {
+    Playlist playlist = new Playlist();
+    playlist.setId("PLMF0Z3Vm69ZdEtsbIsJ1ZjmE7TQ3T0qKL");
+    playlist.setTitle("بودكاست صلة");
+    playlist.setCustomTitle("Sila Podcast");
+    playlist.setSource("YOUTUBE");
+    playlist.setDescription(null);
+
+    when(playlistService.playlistDetail("PLMF0Z3Vm69ZdEtsbIsJ1ZjmE7TQ3T0qKL")).thenReturn(playlist);
+    when(episodeService.getVisibleCompletedEpisodesForPlaylist(playlist)).thenReturn(Collections.emptyList());
+    when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
+
+    String rssXml = rssService.generatePlaylistRssFeed("PLMF0Z3Vm69ZdEtsbIsJ1ZjmE7TQ3T0qKL");
+
+    assertNotNull(rssXml);
+    assertTrue(rssXml.contains("<description>Sila Podcast</description>"),
+        "RSS channel description must fall back to the displayed feed title");
+    assertTrue(rssXml.contains("<itunes:summary>Sila Podcast</itunes:summary>"),
+        "itunes:summary must fall back to the displayed feed title");
+  }
+
+  @Test
+  void testRssFeedKeepsSourceDescriptionWhenPresent() throws Exception {
+    Channel channel = new Channel();
+    channel.setId("desc_channel");
+    channel.setTitle("Described Channel");
+    channel.setSource("YOUTUBE");
+    channel.setDescription("A real description");
+
+    when(channelService.findChannelByIdentification("desc_channel")).thenReturn(channel);
+    when(episodeService.getVisibleCompletedEpisodesForChannel(channel)).thenReturn(Collections.emptyList());
+    when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
+
+    String rssXml = rssService.generateRssFeed("desc_channel");
+
+    assertNotNull(rssXml);
+    assertTrue(rssXml.contains("<description>A real description</description>"));
+    assertTrue(rssXml.contains("<itunes:summary>A real description</itunes:summary>"));
   }
 
   @Test

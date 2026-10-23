@@ -379,6 +379,50 @@ class RssServiceTest {
   }
 
   @Test
+  void testRssFeedUsesCustomDescriptionWhenSet() throws Exception {
+    Channel channel = new Channel();
+    channel.setId("custom_desc_channel");
+    channel.setTitle("Custom Description Channel");
+    channel.setSource("YOUTUBE");
+    channel.setDescription("Original description");
+    channel.setCustomDescription("My own description");
+
+    when(channelService.findChannelByIdentification("custom_desc_channel")).thenReturn(channel);
+    when(episodeService.getVisibleCompletedEpisodesForChannel(channel)).thenReturn(Collections.emptyList());
+    when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
+
+    String rssXml = rssService.generateRssFeed("custom_desc_channel");
+
+    assertNotNull(rssXml);
+    assertTrue(rssXml.contains("<description>My own description</description>"),
+        "RSS channel description must prefer the custom description");
+    assertTrue(rssXml.contains("<itunes:summary>My own description</itunes:summary>"),
+        "itunes:summary must prefer the custom description");
+    assertFalse(rssXml.contains("Original description"),
+        "RSS channel must not contain the source description when a custom one is set");
+  }
+
+  @Test
+  void testPlaylistRssFeedUsesCustomDescriptionWhenSourceDescriptionEmpty() throws Exception {
+    Playlist playlist = new Playlist();
+    playlist.setId("PLcustomdesc");
+    playlist.setTitle("Playlist Without Description");
+    playlist.setSource("YOUTUBE");
+    playlist.setDescription("");
+    playlist.setCustomDescription("Weekly conversations about tech");
+
+    when(playlistService.playlistDetail("PLcustomdesc")).thenReturn(playlist);
+    when(episodeService.getVisibleCompletedEpisodesForPlaylist(playlist)).thenReturn(Collections.emptyList());
+    when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
+
+    String rssXml = rssService.generatePlaylistRssFeed("PLcustomdesc");
+
+    assertNotNull(rssXml);
+    assertTrue(rssXml.contains("<description>Weekly conversations about tech</description>"),
+        "RSS channel description must use the custom description for playlists");
+  }
+
+  @Test
   void testRssFeedKeepsSourceDescriptionWhenPresent() throws Exception {
     Channel channel = new Channel();
     channel.setId("desc_channel");

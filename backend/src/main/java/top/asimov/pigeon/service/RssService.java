@@ -105,7 +105,8 @@ public class RssService {
     SyndFeed feed = createFeed(StringUtils.hasText(channel.getCustomTitle()) ?
             channel.getCustomTitle() : channel.getTitle(),
         FeedSourceUrlBuilder.buildChannelUrl(channel.getSource(), channel.getId()),
-        channel.getDescription(),
+        StringUtils.hasText(channel.getCustomDescription()) ?
+            channel.getCustomDescription() : channel.getDescription(),
         language);
     feed.setEntries(buildEntries(episodes, appBaseUrl, channel.getSource(), false));
     return writeFeed(feed, coverUrl);
@@ -170,7 +171,8 @@ public class RssService {
     SyndFeed feed = createFeed(StringUtils.hasText(playlist.getCustomTitle()) ?
             playlist.getCustomTitle() : playlist.getTitle(),
         playlistLink,
-        playlist.getDescription(),
+        StringUtils.hasText(playlist.getCustomDescription()) ?
+            playlist.getCustomDescription() : playlist.getDescription(),
         language);
     boolean withPlaylistSourcePrefix = "YOUTUBE".equalsIgnoreCase(playlist.getSource());
     feed.setEntries(buildEntries(episodes, appBaseUrl, playlist.getSource(), withPlaylistSourcePrefix));

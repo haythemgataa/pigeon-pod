@@ -18,6 +18,7 @@ import {
   Loader,
   AspectRatio,
   TextInput,
+  Textarea,
   Tooltip,
   Popover,
   FileInput,
@@ -105,6 +106,7 @@ const FeedDetail = () => {
     { open: openCustomizeFeedModal, close: closeCustomizeFeedModal },
   ] = useDisclosure(false);
   const [editingTitle, setEditingTitle] = useState('');
+  const [editingDescription, setEditingDescription] = useState('');
   const [editingLanguage, setEditingLanguage] = useState('');
   const [customCoverFile, setCustomCoverFile] = useState(null);
 
@@ -341,10 +343,11 @@ const FeedDetail = () => {
       }
     }
 
-    // Now update the title and language
+    // Now update the title, description and language
     const res = await API.put(`/api/feed/${type}/config/${feedId}`, {
       ...feed,
       customTitle: editingTitle,
+      customDescription: editingDescription,
       language: editingLanguage || null,
     });
 
@@ -635,6 +638,7 @@ const FeedDetail = () => {
       return;
     }
     setEditingTitle(feed.customTitle || '');
+    setEditingDescription(feed.customDescription || '');
     setEditingLanguage(feed.language || '');
     openCustomizeFeedModal();
   };
@@ -1625,6 +1629,18 @@ const FeedDetail = () => {
             onChange={(event) => setEditingTitle(event.currentTarget.value)}
             data-autofocus
           />
+          {!isUnified && (
+            <Textarea
+              label={t('custom_description')}
+              description={t('custom_description_desc')}
+              placeholder={feed.description || t('no_description_available')}
+              value={editingDescription}
+              onChange={(event) => setEditingDescription(event.currentTarget.value)}
+              autosize
+              minRows={2}
+              maxRows={6}
+            />
+          )}
           <Select
             label={t('podcast_language')}
             description={t('podcast_language_desc')}

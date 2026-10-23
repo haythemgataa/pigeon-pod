@@ -246,6 +246,8 @@
   "minute": "min",
   "edit_title": "Personnaliser les informations du flux",
   "custom_title": "Titre personnalisé",
+  "custom_description": "Description personnalisée",
+  "custom_description_desc": "Affichée dans le flux RSS et les applications de podcast. Laissez vide pour utiliser la description d'origine.",
   "podcast_language": "Langue du podcast",
   "podcast_language_desc": "Code de langue émis dans la balise RSS <language> (ex. en, fr, zh-cn) pour les applications comme Snipd.",
   "select_podcast_language": "Sélectionner la langue du podcast",

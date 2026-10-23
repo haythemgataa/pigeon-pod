@@ -246,6 +246,8 @@
   "minute": "분",
   "edit_title": "피드 정보 사용자 정의",
   "custom_title": "사용자 정의 제목",
+  "custom_description": "사용자 정의 설명",
+  "custom_description_desc": "RSS 피드와 팟캐스트 앱에 표시됩니다. 비워 두면 원래 설명을 사용합니다.",
   "podcast_language": "팟캐스트 언어",
   "podcast_language_desc": "Snipd 등의 앱을 위해 RSS <language> 태그로 전송할 언어 코드(예: en, ko, zh-cn).",
   "select_podcast_language": "팟캐스트 언어 선택",

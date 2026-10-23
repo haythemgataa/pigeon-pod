@@ -248,6 +248,8 @@
   "update_title_failed": "Failed to update title",
   "update_title_success": "Title updated successfully",
   "custom_title": "Custom Title",
+  "custom_description": "Custom Description",
+  "custom_description_desc": "Shown in the RSS feed and podcast apps. Leave empty to use the original description.",
   "podcast_language": "Podcast Language",
   "podcast_language_desc": "Language code emitted in the RSS <language> tag (e.g. en, zh-cn) for podcast apps like Snipd.",
   "select_podcast_language": "Select podcast language",

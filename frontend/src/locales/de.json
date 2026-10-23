@@ -246,6 +246,8 @@
   "minute": "Min",
   "edit_title": "Feed-Informationen anpassen",
   "custom_title": "Benutzerdefinierter Titel",
+  "podcast_author": "Autor",
+  "podcast_author_desc": "Wird in Podcast-Apps als Autor angezeigt (RSS <itunes:author>). Standardmäßig der Name des Quellkanals; leer lassen, um den Feed-Titel zu verwenden.",
   "custom_description": "Benutzerdefinierte Beschreibung",
   "custom_description_desc": "Wird im RSS-Feed und in Podcast-Apps angezeigt. Leer lassen, um die ursprüngliche Beschreibung zu verwenden.",
   "podcast_language": "Podcast-Sprache",

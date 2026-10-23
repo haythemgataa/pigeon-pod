@@ -37,6 +37,8 @@ public abstract class Feed {
 
   private String customDescription;
 
+  private String author;
+
   @TableField(updateStrategy = FieldStrategy.ALWAYS)
   private String titleContainKeywords;
 

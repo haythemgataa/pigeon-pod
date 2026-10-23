@@ -246,6 +246,8 @@
   "minute": "分",
   "edit_title": "フィード情報をカスタマイズ",
   "custom_title": "カスタムタイトル",
+  "podcast_author": "作者",
+  "podcast_author_desc": "ポッドキャストアプリで作者として表示されます（RSS <itunes:author>）。既定は元のチャンネル名です。空欄の場合はフィードのタイトルを使用します。",
   "custom_description": "カスタム説明",
   "custom_description_desc": "RSSフィードやポッドキャストアプリに表示されます。空欄の場合は元の説明を使用します。",
   "podcast_language": "ポッドキャストの言語",

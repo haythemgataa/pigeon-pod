@@ -246,6 +246,8 @@
   "minute": "분",
   "edit_title": "피드 정보 사용자 정의",
   "custom_title": "사용자 정의 제목",
+  "podcast_author": "작성자",
+  "podcast_author_desc": "팟캐스트 앱에서 작성자로 표시됩니다(RSS <itunes:author>). 기본값은 원본 채널 이름이며, 비워 두면 피드 제목을 사용합니다.",
   "custom_description": "사용자 정의 설명",
   "custom_description_desc": "RSS 피드와 팟캐스트 앱에 표시됩니다. 비워 두면 원래 설명을 사용합니다.",
   "podcast_language": "팟캐스트 언어",

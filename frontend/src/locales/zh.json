@@ -246,6 +246,8 @@
   "minute": "分",
   "edit_title": "编辑标题和封面",
   "custom_title": "自定义标题",
+  "podcast_author": "作者",
+  "podcast_author_desc": "在播客应用中显示为播客作者（RSS <itunes:author>）。默认为来源频道名称；留空则使用订阅标题。",
   "custom_description": "自定义描述",
   "custom_description_desc": "显示在 RSS 订阅和播客应用中。留空则使用原始描述。",
   "podcast_language": "播客语言",

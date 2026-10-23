@@ -115,6 +115,7 @@ public abstract class AbstractFeedService<F extends Feed> {
     existingFeed.setAudioQuality(configuration.getAudioQuality());
     existingFeed.setCustomTitle(configuration.getCustomTitle());
     existingFeed.setCustomDescription(configuration.getCustomDescription());
+    existingFeed.setAuthor(configuration.getAuthor());
     if (configuration.getCustomCoverExt() != null) {
       existingFeed.setCustomCoverExt(configuration.getCustomCoverExt());
     }

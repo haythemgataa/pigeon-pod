@@ -423,6 +423,49 @@ class RssServiceTest {
   }
 
   @Test
+  void testPlaylistRssFeedUsesAuthorForItunesAuthor() throws Exception {
+    Playlist playlist = new Playlist();
+    playlist.setId("PLauthor");
+    playlist.setTitle("بودكاست صلة");
+    playlist.setAuthor("Owner Channel");
+    playlist.setSource("YOUTUBE");
+    playlist.setDescription("Playlist description");
+
+    when(playlistService.playlistDetail("PLauthor")).thenReturn(playlist);
+    when(episodeService.getVisibleCompletedEpisodesForPlaylist(playlist)).thenReturn(Collections.emptyList());
+    when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
+
+    String rssXml = rssService.generatePlaylistRssFeed("PLauthor");
+
+    assertNotNull(rssXml);
+    assertTrue(rssXml.contains("<itunes:author>Owner Channel</itunes:author>"),
+        "itunes:author must use the feed author when set");
+    assertTrue(rssXml.contains("<title>بودكاست صلة</title>"),
+        "feed title must stay the playlist name");
+  }
+
+  @Test
+  void testRssFeedFallsBackToTitleForItunesAuthorWhenAuthorEmpty() throws Exception {
+    Channel channel = new Channel();
+    channel.setId("no_author_channel");
+    channel.setTitle("No Author Channel");
+    channel.setCustomTitle("Custom Show Name");
+    channel.setAuthor("  ");
+    channel.setSource("YOUTUBE");
+    channel.setDescription("Test Description");
+
+    when(channelService.findChannelByIdentification("no_author_channel")).thenReturn(channel);
+    when(episodeService.getVisibleCompletedEpisodesForChannel(channel)).thenReturn(Collections.emptyList());
+    when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
+
+    String rssXml = rssService.generateRssFeed("no_author_channel");
+
+    assertNotNull(rssXml);
+    assertTrue(rssXml.contains("<itunes:author>Custom Show Name</itunes:author>"),
+        "itunes:author must fall back to the displayed feed title when no author is set");
+  }
+
+  @Test
   void testRssFeedKeepsSourceDescriptionWhenPresent() throws Exception {
     Channel channel = new Channel();
     channel.setId("desc_channel");

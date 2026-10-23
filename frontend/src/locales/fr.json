@@ -246,6 +246,8 @@
   "minute": "min",
   "edit_title": "Personnaliser les informations du flux",
   "custom_title": "Titre personnalisé",
+  "podcast_author": "Auteur",
+  "podcast_author_desc": "Affiché comme auteur du podcast dans les applications (RSS <itunes:author>). Par défaut, le nom de la chaîne source ; laissez vide pour utiliser le titre du flux.",
   "custom_description": "Description personnalisée",
   "custom_description_desc": "Affichée dans le flux RSS et les applications de podcast. Laissez vide pour utiliser la description d'origine.",
   "podcast_language": "Langue du podcast",

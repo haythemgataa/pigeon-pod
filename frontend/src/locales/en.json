@@ -248,6 +248,8 @@
   "update_title_failed": "Failed to update title",
   "update_title_success": "Title updated successfully",
   "custom_title": "Custom Title",
+  "podcast_author": "Author",
+  "podcast_author_desc": "Shown as the podcast author in podcast apps (RSS <itunes:author>). Defaults to the source channel name; leave empty to use the feed title.",
   "custom_description": "Custom Description",
   "custom_description_desc": "Shown in the RSS feed and podcast apps. Leave empty to use the original description.",
   "podcast_language": "Podcast Language",

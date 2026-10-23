@@ -107,6 +107,7 @@ public class RssService {
         FeedSourceUrlBuilder.buildChannelUrl(channel.getSource(), channel.getId()),
         StringUtils.hasText(channel.getCustomDescription()) ?
             channel.getCustomDescription() : channel.getDescription(),
+        channel.getAuthor(),
         language);
     feed.setEntries(buildEntries(episodes, appBaseUrl, channel.getSource(), false));
     return writeFeed(feed, coverUrl);
@@ -147,7 +148,8 @@ public class RssService {
       language = resolveEffectiveLanguage(null);
     }
 
-    SyndFeed feed = createFeed(feedTitle, appBaseUrl, "PigeonPod Unified Feed - All Episodes", language);
+    SyndFeed feed = createFeed(feedTitle, appBaseUrl, "PigeonPod Unified Feed - All Episodes", null,
+        language);
     feed.setEntries(buildEntries(episodes, appBaseUrl, null, false));
     return writeFeed(feed, coverUrl);
   }
@@ -173,6 +175,7 @@ public class RssService {
         playlistLink,
         StringUtils.hasText(playlist.getCustomDescription()) ?
             playlist.getCustomDescription() : playlist.getDescription(),
+        playlist.getAuthor(),
         language);
     boolean withPlaylistSourcePrefix = "YOUTUBE".equalsIgnoreCase(playlist.getSource());
     feed.setEntries(buildEntries(episodes, appBaseUrl, playlist.getSource(), withPlaylistSourcePrefix));
@@ -203,7 +206,8 @@ public class RssService {
     return DEFAULT_RSS_LANGUAGE;
   }
 
-  private SyndFeed createFeed(String title, String link, String description, String language) {
+  private SyndFeed createFeed(String title, String link, String description, String author,
+      String language) {
     String feedDescription = resolveFeedDescription(title, link, description);
     SyndFeed feed = new SyndFeedImpl();
     feed.setFeedType("rss_2.0");
@@ -216,7 +220,7 @@ public class RssService {
     feed.setPublishedDate(new Date());
 
     FeedInformation feedInfo = new FeedInformationImpl();
-    feedInfo.setAuthor(title);
+    feedInfo.setAuthor(StringUtils.hasText(author) ? author.trim() : title);
     feedInfo.setBlock(true);
     feedInfo.setSummary(feedDescription);
     feedInfo.setCategories(Collections.singletonList(new Category(ITUNES_CATEGORY_TEXT)));

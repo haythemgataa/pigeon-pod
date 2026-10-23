@@ -106,6 +106,7 @@ const FeedDetail = () => {
     { open: openCustomizeFeedModal, close: closeCustomizeFeedModal },
   ] = useDisclosure(false);
   const [editingTitle, setEditingTitle] = useState('');
+  const [editingAuthor, setEditingAuthor] = useState('');
   const [editingDescription, setEditingDescription] = useState('');
   const [editingLanguage, setEditingLanguage] = useState('');
   const [customCoverFile, setCustomCoverFile] = useState(null);
@@ -343,10 +344,11 @@ const FeedDetail = () => {
       }
     }
 
-    // Now update the title, description and language
+    // Now update the title, author, description and language
     const res = await API.put(`/api/feed/${type}/config/${feedId}`, {
       ...feed,
       customTitle: editingTitle,
+      author: editingAuthor,
       customDescription: editingDescription,
       language: editingLanguage || null,
     });
@@ -638,6 +640,7 @@ const FeedDetail = () => {
       return;
     }
     setEditingTitle(feed.customTitle || '');
+    setEditingAuthor(feed.author || '');
     setEditingDescription(feed.customDescription || '');
     setEditingLanguage(feed.language || '');
     openCustomizeFeedModal();
@@ -1629,6 +1632,15 @@ const FeedDetail = () => {
             onChange={(event) => setEditingTitle(event.currentTarget.value)}
             data-autofocus
           />
+          {!isUnified && (
+            <TextInput
+              label={t('podcast_author')}
+              description={t('podcast_author_desc')}
+              placeholder={editingTitle || feed.title}
+              value={editingAuthor}
+              onChange={(event) => setEditingAuthor(event.currentTarget.value)}
+            />
+          )}
           {!isUnified && (
             <Textarea
               label={t('custom_description')}

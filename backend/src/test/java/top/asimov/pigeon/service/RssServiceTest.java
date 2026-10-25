@@ -1,10 +1,13 @@
 package top.asimov.pigeon.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
@@ -51,6 +54,9 @@ class RssServiceTest {
 
   @Mock
   private SystemConfigService systemConfigService;
+
+  @Mock
+  private EpisodeCoverService episodeCoverService;
 
   @InjectMocks
   private RssService rssService;
@@ -548,5 +554,85 @@ class RssServiceTest {
     assertTrue(rssXml.contains("<title>My Favorite Podcast Archive</title>"));
     assertTrue(rssXml.contains("<language>zh-CN</language>"));
     assertTrue(rssXml.contains("/media/feed/all/cover?v="));
+  }
+
+  @Test
+  void testEpisodeCoverUsesStyledUrlWhenFeedSquaresArtwork() throws Exception {
+    Channel channel = coverStyleChannel("{\"mode\":\"PAD\",\"fill\":\"BLUR\"}");
+    Episode episode = coverStyleEpisode();
+    stubChannelFeed(channel, episode);
+    String styledUrl =
+        "https://pigeon.example.com/media/feed/channel/ytchannel/episodes/video_003/cover.jpg?v=abc";
+    when(episodeCoverService.hasCoverSource(episode)).thenReturn(true);
+    when(episodeCoverService.buildCoverUrl(eq("https://pigeon.example.com"), eq(channel),
+        eq(episode), any())).thenReturn(styledUrl);
+
+    String rssXml = rssService.generateRssFeed("ytchannel");
+
+    assertTrue(rssXml.contains(styledUrl), "RSS item must link the squared cover");
+    verify(mediaService, never()).resolveEpisodeCoverUrlForRss(any(), any());
+  }
+
+  @Test
+  void testEpisodeCoverKeepsOriginalWhenSquaredArtworkHasNoSource() throws Exception {
+    Channel channel = coverStyleChannel("{\"mode\":\"CROP\",\"position\":30}");
+    Episode episode = coverStyleEpisode();
+    stubChannelFeed(channel, episode);
+    when(episodeCoverService.hasCoverSource(episode)).thenReturn(false);
+    when(mediaService.resolveEpisodeCoverUrlForRss(eq("https://pigeon.example.com"), eq(episode)))
+        .thenReturn("https://pigeon.example.com/media/video_003/cover");
+
+    String rssXml = rssService.generateRssFeed("ytchannel");
+
+    assertTrue(rssXml.contains("https://pigeon.example.com/media/video_003/cover"));
+    assertFalse(rssXml.contains("/episodes/video_003/cover.jpg"));
+  }
+
+  @Test
+  void testEpisodeCoverUsesFeedCoverWhenFeedCoverModeSelected() throws Exception {
+    Channel channel = coverStyleChannel("{\"mode\":\"FEED_COVER\"}");
+    channel.setCoverUrl("https://yt3.example.com/channel-avatar.jpg");
+    Episode episode = coverStyleEpisode();
+    stubChannelFeed(channel, episode);
+
+    String rssXml = rssService.generateRssFeed("ytchannel");
+
+    int occurrences = rssXml.split("https://yt3.example.com/channel-avatar.jpg", -1).length - 1;
+    assertEquals(2, occurrences, "Feed cover must be used for the channel and the episode");
+    assertFalse(rssXml.contains("maxresdefault.jpg"));
+    verify(mediaService, never()).resolveEpisodeCoverUrlForRss(any(), any());
+  }
+
+  private Channel coverStyleChannel(String episodeCoverStyle) {
+    Channel channel = new Channel();
+    channel.setId("ytchannel");
+    channel.setTitle("Test Channel");
+    channel.setSource("YOUTUBE");
+    channel.setDescription("Test Channel Description");
+    channel.setEpisodeCoverStyle(episodeCoverStyle);
+    return channel;
+  }
+
+  private Episode coverStyleEpisode() {
+    return Episode.builder()
+        .id("video_003")
+        .channelId("ytchannel")
+        .title("Episode With Styled Cover")
+        .publishedAt(LocalDateTime.of(2026, 10, 1, 12, 0, 0))
+        .mediaFilePath("/data/audio/video_003.mp3")
+        .mediaType("audio/mpeg")
+        .maxCoverUrl("https://i.ytimg.com/vi/video_003/maxresdefault.jpg")
+        .build();
+  }
+
+  private void stubChannelFeed(Channel channel, Episode episode) throws Exception {
+    when(channelService.findChannelByIdentification("ytchannel")).thenReturn(channel);
+    when(episodeService.getVisibleCompletedEpisodesForChannel(channel))
+        .thenReturn(List.of(episode));
+    when(appBaseUrlResolver.requireBaseUrl()).thenReturn("https://pigeon.example.com");
+    when(mediaService.resolveMediaUrlForRss(eq("https://pigeon.example.com"), eq(episode)))
+        .thenReturn("https://pigeon.example.com/media/video_003.mp3");
+    when(mediaService.resolveMediaLengthForRss(eq(episode))).thenReturn(1000L);
+    when(mediaService.getAvailableSubtitles(any())).thenReturn(Collections.emptyList());
   }
 }

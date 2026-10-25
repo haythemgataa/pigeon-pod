@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.jdom2.CDATA;
 import org.jdom2.Document;
@@ -44,6 +45,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 import top.asimov.pigeon.config.AppBaseUrlResolver;
 import top.asimov.pigeon.exception.BusinessException;
+import top.asimov.pigeon.model.dto.EpisodeCoverStyle;
 import top.asimov.pigeon.model.dto.SubtitleInfo;
 import top.asimov.pigeon.model.entity.Channel;
 import top.asimov.pigeon.model.entity.Episode;
@@ -66,6 +68,7 @@ public class RssService {
   private final AppBaseUrlResolver appBaseUrlResolver;
   private final FeedDefaultsService feedDefaultsService;
   private final SystemConfigService systemConfigService;
+  private final EpisodeCoverService episodeCoverService;
 
   public static final String DEFAULT_RSS_LANGUAGE = "en";
 
@@ -78,7 +81,7 @@ public class RssService {
   public RssService(ChannelService channelService, EpisodeService episodeService,
       PlaylistService playlistService, MediaService mediaService, MessageSource messageSource,
       AppBaseUrlResolver appBaseUrlResolver, FeedDefaultsService feedDefaultsService,
-      SystemConfigService systemConfigService) {
+      SystemConfigService systemConfigService, EpisodeCoverService episodeCoverService) {
     this.channelService = channelService;
     this.episodeService = episodeService;
     this.playlistService = playlistService;
@@ -87,6 +90,7 @@ public class RssService {
     this.appBaseUrlResolver = appBaseUrlResolver;
     this.feedDefaultsService = feedDefaultsService;
     this.systemConfigService = systemConfigService;
+    this.episodeCoverService = episodeCoverService;
   }
 
   public String generateRssFeed(String channelIdentification) throws MalformedURLException {
@@ -109,7 +113,8 @@ public class RssService {
             channel.getCustomDescription() : channel.getDescription(),
         channel.getAuthor(),
         language);
-    feed.setEntries(buildEntries(episodes, appBaseUrl, channel.getSource(), false));
+    feed.setEntries(buildEntries(episodes, appBaseUrl, channel.getSource(), false,
+        episodeCoverResolver(channel, appBaseUrl, coverUrl)));
     return writeFeed(feed, coverUrl);
   }
 
@@ -150,7 +155,8 @@ public class RssService {
 
     SyndFeed feed = createFeed(feedTitle, appBaseUrl, "PigeonPod Unified Feed - All Episodes", null,
         language);
-    feed.setEntries(buildEntries(episodes, appBaseUrl, null, false));
+    feed.setEntries(buildEntries(episodes, appBaseUrl, null, false,
+        episodeCoverResolver(null, appBaseUrl, null)));
     return writeFeed(feed, coverUrl);
   }
 
@@ -178,8 +184,30 @@ public class RssService {
         playlist.getAuthor(),
         language);
     boolean withPlaylistSourcePrefix = "YOUTUBE".equalsIgnoreCase(playlist.getSource());
-    feed.setEntries(buildEntries(episodes, appBaseUrl, playlist.getSource(), withPlaylistSourcePrefix));
+    feed.setEntries(buildEntries(episodes, appBaseUrl, playlist.getSource(), withPlaylistSourcePrefix,
+        episodeCoverResolver(playlist, appBaseUrl, coverUrl)));
     return writeFeed(feed, coverUrl);
+  }
+
+  /**
+   * Picks each episode's {@code itunes:image} according to the feed's episode artwork style. The
+   * unified feed (no {@code feed}) always keeps the original thumbnails.
+   */
+  private Function<Episode, String> episodeCoverResolver(Feed feed, String appBaseUrl,
+      String feedCoverUrl) {
+    Function<Episode, String> original =
+        episode -> mediaService.resolveEpisodeCoverUrlForRss(appBaseUrl, episode);
+    if (feed == null) {
+      return original;
+    }
+    EpisodeCoverStyle style = EpisodeCoverStyle.parse(feed.getEpisodeCoverStyle());
+    return switch (style.mode()) {
+      case ORIGINAL -> original;
+      case FEED_COVER -> StringUtils.hasText(feedCoverUrl) ? episode -> feedCoverUrl : original;
+      case PAD, CROP -> episode -> episodeCoverService.hasCoverSource(episode)
+          ? episodeCoverService.buildCoverUrl(appBaseUrl, feed, episode, style)
+          : original.apply(episode);
+    };
   }
 
   private String resolveEpisodeSource(Episode episode) {
@@ -243,7 +271,7 @@ public class RssService {
   }
 
   private List<SyndEntry> buildEntries(List<Episode> episodes, String appBaseUrl, String source,
-      boolean withPlaylistSourcePrefix) {
+      boolean withPlaylistSourcePrefix, Function<Episode, String> episodeCoverResolver) {
     List<SyndEntry> entries = new ArrayList<>();
     for (Episode episode : episodes) {
       if (episode == null || episode.getPublishedAt() == null) {
@@ -292,7 +320,7 @@ public class RssService {
       EntryInformation entryInfo = new EntryInformationImpl();
       entryInfo.setSummary(summary);
       entryInfo.setDuration(convertToRomeDuration(episode.getDuration()));
-      String episodeCoverUrl = mediaService.resolveEpisodeCoverUrlForRss(appBaseUrl, episode);
+      String episodeCoverUrl = episodeCoverResolver.apply(episode);
       if (StringUtils.hasText(episodeCoverUrl)) {
         try {
           String normalizedUrl = normalizeUrlProtocol(episodeCoverUrl);

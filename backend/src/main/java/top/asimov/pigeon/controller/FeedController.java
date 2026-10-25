@@ -5,6 +5,9 @@ import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.util.SaResult;
 import java.io.IOException;
 import java.util.Map;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -102,6 +105,19 @@ public class FeedController {
     } catch (IOException e) {
       return SaResult.error(e.getMessage());
     }
+  }
+
+  @SaCheckRole("admin")
+  @GetMapping("/{type}/{id}/episode-cover/preview")
+  public ResponseEntity<byte[]> previewEpisodeCover(@PathVariable String type,
+      @PathVariable String id, @RequestParam String episodeId,
+      @RequestParam(required = false) String style) {
+    FeedType feedType = feedService.resolveType(type);
+    byte[] image = feedService.previewEpisodeCover(feedType, id, episodeId, style);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .contentType(MediaType.IMAGE_JPEG)
+        .body(image);
   }
 
   @SaCheckRole("admin")

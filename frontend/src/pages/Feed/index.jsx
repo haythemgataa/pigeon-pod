@@ -60,6 +60,11 @@ import { useDateFormat } from '../../hooks/useDateFormat.js';
 import CopyModal from '../../components/CopyModal';
 import EditFeedModal from '../../components/EditFeedModal';
 import FeedHeader from '../../components/FeedHeader';
+import EpisodeArtworkSettings from '../../components/EpisodeArtworkSettings';
+import {
+  parseEpisodeCoverStyle,
+  serializeEpisodeCoverStyle,
+} from '../../helpers/episodeCoverStyle.js';
 import { UserContext } from '../../context/User/UserContext.jsx';
 
 // 需要自动轮询的节目状态常量（移到组件外部避免重复创建）
@@ -109,6 +114,7 @@ const FeedDetail = () => {
   const [editingAuthor, setEditingAuthor] = useState('');
   const [editingDescription, setEditingDescription] = useState('');
   const [editingLanguage, setEditingLanguage] = useState('');
+  const [editingCoverStyle, setEditingCoverStyle] = useState(() => parseEpisodeCoverStyle(null));
   const [customCoverFile, setCustomCoverFile] = useState(null);
 
   const podcastLanguageSelectData = useMemo(() => {
@@ -351,6 +357,7 @@ const FeedDetail = () => {
       author: editingAuthor,
       customDescription: editingDescription,
       language: editingLanguage || null,
+      ...(!isUnified && { episodeCoverStyle: serializeEpisodeCoverStyle(editingCoverStyle) }),
     });
 
     const { code, msg } = res.data;
@@ -643,6 +650,7 @@ const FeedDetail = () => {
     setEditingAuthor(feed.author || '');
     setEditingDescription(feed.customDescription || '');
     setEditingLanguage(feed.language || '');
+    setEditingCoverStyle(parseEpisodeCoverStyle(feed.episodeCoverStyle));
     openCustomizeFeedModal();
   };
 
@@ -1624,6 +1632,7 @@ const FeedDetail = () => {
         opened={customizeFeedModalOpened}
         onClose={closeCustomizeFeedModal}
         title={t('edit_title')}
+        size={isUnified ? 'md' : 'lg'}
       >
         <Stack>
           <TextInput
@@ -1688,6 +1697,16 @@ const FeedDetail = () => {
               </Grid.Col>
             )}
           </Grid>
+          {!isUnified && (
+            <EpisodeArtworkSettings
+              value={editingCoverStyle}
+              onChange={setEditingCoverStyle}
+              feedType={type}
+              feedId={feedId}
+              feedCoverUrl={feed.customCoverUrl || feed.coverUrl}
+              episodes={episodes}
+            />
+          )}
         </Stack>
         <Group justify="flex-end" mt="xl">
           <Button variant="default" onClick={closeCustomizeFeedModal}>

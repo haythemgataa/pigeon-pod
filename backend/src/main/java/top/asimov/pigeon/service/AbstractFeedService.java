@@ -17,6 +17,7 @@ import top.asimov.pigeon.event.DownloadTaskEvent.DownloadAction;
 import top.asimov.pigeon.event.DownloadTaskEvent.DownloadTargetType;
 import top.asimov.pigeon.exception.BusinessException;
 import top.asimov.pigeon.handler.FeedEpisodeHelper;
+import top.asimov.pigeon.model.dto.EpisodeCoverStyle;
 import top.asimov.pigeon.model.entity.Episode;
 import top.asimov.pigeon.model.entity.Feed;
 import top.asimov.pigeon.model.response.FeedConfigUpdateResult;
@@ -127,6 +128,8 @@ public abstract class AbstractFeedService<F extends Feed> {
     existingFeed.setSubtitleLanguages(configuration.getSubtitleLanguages());
     existingFeed.setLanguage(configuration.getLanguage());
     existingFeed.setYtDlpArgs(normalizeFeedYtDlpArgs(configuration.getYtDlpArgs()));
+    existingFeed.setEpisodeCoverStyle(
+        EpisodeCoverStyle.normalizeForStorage(configuration.getEpisodeCoverStyle()));
     applyAdditionalMutableFields(existingFeed, configuration);
   }
 
@@ -143,6 +146,7 @@ public abstract class AbstractFeedService<F extends Feed> {
     normalizeAutoDownloadLimit(feed);
     normalizeAutoDownloadDelay(feed);
     feed.setYtDlpArgs(normalizeFeedYtDlpArgs(feed.getYtDlpArgs()));
+    feed.setEpisodeCoverStyle(EpisodeCoverStyle.normalizeForStorage(feed.getEpisodeCoverStyle()));
     return saveFeedAsync(feed);
   }
 

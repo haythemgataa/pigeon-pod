@@ -40,11 +40,13 @@ public class FeedService {
   private final AccountService accountService;
   private final AppBaseUrlResolver appBaseUrlResolver;
   private final SystemConfigService systemConfigService;
+  private final EpisodeCoverService episodeCoverService;
 
   public FeedService(ChannelService channelService, PlaylistService playlistService,
       MessageSource messageSource, MediaService mediaService, ObjectMapper objectMapper,
       BilibiliResolverHelper bilibiliResolverHelper, AccountService accountService,
-      AppBaseUrlResolver appBaseUrlResolver, SystemConfigService systemConfigService) {
+      AppBaseUrlResolver appBaseUrlResolver, SystemConfigService systemConfigService,
+      EpisodeCoverService episodeCoverService) {
     this.channelService = channelService;
     this.playlistService = playlistService;
     this.messageSource = messageSource;
@@ -54,6 +56,7 @@ public class FeedService {
     this.accountService = accountService;
     this.appBaseUrlResolver = appBaseUrlResolver;
     this.systemConfigService = systemConfigService;
+    this.episodeCoverService = episodeCoverService;
   }
 
   public FeedType resolveType(String rawType) {
@@ -175,10 +178,16 @@ public class FeedService {
   public FeedConfigUpdateResult updateConfig(FeedType type, String id,
       Map<String, Object> payload) {
     Map<String, Object> safePayload = payload == null ? Map.of() : payload;
-    return switch (type) {
+    FeedConfigUpdateResult result = switch (type) {
       case CHANNEL -> channelService.updateChannelConfig(id, objectMapper.convertValue(safePayload, Channel.class));
       case PLAYLIST -> playlistService.updatePlaylistConfig(id, objectMapper.convertValue(safePayload, Playlist.class));
     };
+    episodeCoverService.pruneCache(type, id);
+    return result;
+  }
+
+  public byte[] previewEpisodeCover(FeedType type, String id, String episodeId, String style) {
+    return episodeCoverService.renderPreview(type, id, episodeId, style);
   }
 
   public void updateCustomCover(FeedType type, String id, MultipartFile file) throws IOException {
@@ -265,6 +274,7 @@ public class FeedService {
       case CHANNEL -> channelService.deleteChannel(id);
       case PLAYLIST -> playlistService.deletePlaylist(id);
     }
+    episodeCoverService.evictFeed(id);
   }
 
   public FeedRefreshResult refresh(FeedType type, String id) {

@@ -58,6 +58,9 @@ public class EpisodeCoverService {
   static final String CACHE_DIRECTORY = "episode-styles";
   static final int MAX_COVER_SIDE = 1600;
   static final int PREVIEW_MAX_SIDE = 480;
+  /** Size of the small covers shown in PigeonPod's own episode lists. */
+  static final int SMALL_COVER_SIDE = 400;
+  private static final String SMALL_SUFFIX = "-s";
   private static final int MAX_CONCURRENT_RENDERS = 2;
   private static final Duration RENDER_WAIT = Duration.ofSeconds(30);
   private static final int PREVIEW_SOURCE_CACHE_SIZE = 24;
@@ -136,10 +139,16 @@ public class EpisodeCoverService {
   private static boolean isCachedCoverOf(Path entry, String prefix) {
     String name = entry.getFileName().toString();
     return name.startsWith(prefix)
-        && name.substring(prefix.length()).matches("[0-9a-f]{10}\\.jpg");
+        && name.substring(prefix.length()).matches("[0-9a-f]{10}(-s)?\\.jpg");
   }
 
   public ResponseEntity<?> buildCoverResponse(String type, String feedId, String episodeId) {
+    return buildCoverResponse(type, feedId, episodeId, false);
+  }
+
+  /** {@code small} serves a reduced copy for PigeonPod's own lists instead of the full cover. */
+  public ResponseEntity<?> buildCoverResponse(String type, String feedId, String episodeId,
+      boolean small) {
     try {
       Feed feed = findFeed(type, feedId);
       Episode episode = episodeMapper.selectById(episodeId);
@@ -150,7 +159,7 @@ public class EpisodeCoverService {
       if (!style.requiresRendering()) {
         return mediaService.buildEpisodeCoverResponse(episodeId);
       }
-      Path cached = resolveCachedCover(feed, episode, style);
+      Path cached = resolveCachedCover(feed, episode, style, small);
       if (cached == null) {
         return mediaService.buildEpisodeCoverResponse(episodeId);
       }
@@ -229,14 +238,16 @@ public class EpisodeCoverService {
       evictFeed(feedId);
       return;
     }
-    String suffix = "-" + style.fingerprint() + ".jpg";
+    String fullSuffix = "-" + style.fingerprint() + ".jpg";
+    String smallSuffix = "-" + style.fingerprint() + SMALL_SUFFIX + ".jpg";
     Path directory = feedCacheDirectory(feedId);
     if (!Files.isDirectory(directory)) {
       return;
     }
     try (DirectoryStream<Path> stream = Files.newDirectoryStream(directory, "*.jpg")) {
       for (Path entry : stream) {
-        if (!entry.getFileName().toString().endsWith(suffix)) {
+        String name = entry.getFileName().toString();
+        if (!name.endsWith(fullSuffix) && !name.endsWith(smallSuffix)) {
           Files.deleteIfExists(entry);
         }
       }
@@ -255,11 +266,13 @@ public class EpisodeCoverService {
     }
   }
 
-  private Path resolveCachedCover(Feed feed, Episode episode, EpisodeCoverStyle style)
+  private Path resolveCachedCover(Feed feed, Episode episode, EpisodeCoverStyle style,
+      boolean small)
       throws IOException {
     Path directory = feedCacheDirectory(feed.getId());
     Path target = directory.resolve(
-        safeFileName(episode.getId()) + "-" + style.fingerprint() + ".jpg");
+        safeFileName(episode.getId()) + "-" + style.fingerprint()
+            + (small ? SMALL_SUFFIX : "") + ".jpg");
     File localSource = mediaService.isS3ModeEnabled() ? null : findLocalSource(episode);
     if (Files.isRegularFile(target) && (localSource == null
         || localSource.lastModified() <= Files.getLastModifiedTime(target).toMillis())) {
@@ -270,7 +283,8 @@ public class EpisodeCoverService {
     if (source == null) {
       return null;
     }
-    BufferedImage rendered = renderLimited(source, style, MAX_COVER_SIDE);
+    BufferedImage rendered = renderLimited(source, style,
+        small ? SMALL_COVER_SIDE : MAX_COVER_SIDE);
     Files.createDirectories(directory);
     Path temp = Files.createTempFile(directory, "render-", ".tmp");
     try {

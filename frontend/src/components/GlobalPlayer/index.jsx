@@ -236,7 +236,7 @@ const GlobalPlayer = () => {
               onClick={isVideo ? handleOpenModal : undefined}
             >
               <Image
-                src={episodeCoverSrc(currentEpisode)}
+                src={currentEpisode.displayCoverUrl || episodeCoverSrc(currentEpisode)}
                 h={50}
                 w={50}
                 radius="sm"

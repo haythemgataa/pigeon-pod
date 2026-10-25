@@ -49,13 +49,25 @@ class MediaControllerTest {
 
   @Test
   void testGetStyledEpisodeCoverRoutesToEpisodeCoverService() throws Exception {
-    when(episodeCoverService.buildCoverResponse("playlist", "PL_123", "ep_003"))
+    when(episodeCoverService.buildCoverResponse("playlist", "PL_123", "ep_003", false))
         .thenAnswer(invocation -> ResponseEntity.ok().build());
 
     mockMvc.perform(get("/media/feed/playlist/PL_123/episodes/ep_003/cover.jpg").param("v", "abc"))
         .andExpect(status().isOk());
 
-    verify(episodeCoverService).buildCoverResponse("playlist", "PL_123", "ep_003");
+    verify(episodeCoverService).buildCoverResponse("playlist", "PL_123", "ep_003", false);
+  }
+
+  @Test
+  void testGetSmallStyledEpisodeCover() throws Exception {
+    when(episodeCoverService.buildCoverResponse("channel", "UC_1", "ep_004", true))
+        .thenAnswer(invocation -> ResponseEntity.ok().build());
+
+    mockMvc.perform(get("/media/feed/channel/UC_1/episodes/ep_004/cover.jpg")
+            .param("size", "small"))
+        .andExpect(status().isOk());
+
+    verify(episodeCoverService).buildCoverResponse("channel", "UC_1", "ep_004", true);
   }
 
   @Test

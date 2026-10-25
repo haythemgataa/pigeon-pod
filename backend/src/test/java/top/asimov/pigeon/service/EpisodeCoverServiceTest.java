@@ -132,6 +132,28 @@ class EpisodeCoverServiceTest {
   }
 
   @Test
+  void smallCoversAreCachedSeparatelyAndSurvivePruning() throws Exception {
+    BufferedImage large = new BufferedImage(1280, 720, BufferedImage.TYPE_INT_RGB);
+    ImageIO.write(large, "jpg", thumbnail);
+
+    ResponseEntity<?> small = episodeCoverService.buildCoverResponse("channel", "UCchannel",
+        "video_001", true);
+    episodeCoverService.buildCoverResponse("channel", "UCchannel", "video_001", false);
+
+    BufferedImage smallImage = ImageIO.read(((FileSystemResource) small.getBody()).getFile());
+    assertEquals(EpisodeCoverService.SMALL_COVER_SIDE, smallImage.getWidth());
+    String fingerprint = EpisodeCoverStyle.parse(PAD_STYLE).fingerprint();
+    assertEquals(List.of("video_001-" + fingerprint + "-s.jpg", "video_001-" + fingerprint + ".jpg"),
+        cachedFiles().stream().map(path -> path.getFileName().toString()).sorted().toList());
+
+    episodeCoverService.pruneCache(FeedType.CHANNEL, "UCchannel");
+    assertEquals(2, cachedFiles().size());
+
+    episodeCoverService.evictEpisode("video_001");
+    assertTrue(cachedFiles().isEmpty());
+  }
+
+  @Test
   void originalStyleServesUntouchedThumbnail() {
     channel.setEpisodeCoverStyle(null);
     ResponseEntity<?> original = ResponseEntity.ok().build();

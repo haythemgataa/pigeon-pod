@@ -1,3 +1,5 @@
+import { parseEpisodeCoverStyle } from './episodeCoverStyle';
+
 /** Title shown for an episode, after the user's per-episode edits. */
 export function episodeTitle(episode) {
   return episode?.customTitle || episode?.title || '';
@@ -16,6 +18,36 @@ export function episodeCoverSrc(episode) {
     return `/media/${encodeURIComponent(episode.id)}/cover${version}`;
   }
   return episode.maxCoverUrl || episode.defaultCoverUrl || '';
+}
+
+/** Short, stable cache-busting token for a string. */
+function shortHash(text) {
+  let hash = 5381;
+  for (let i = 0; i < text.length; i += 1) {
+    hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/** Whether the feed shows square episode artwork (anything but the original thumbnails). */
+export function hasSquareEpisodeArtwork(feed) {
+  return parseEpisodeCoverStyle(feed?.episodeCoverStyle).mode !== 'ORIGINAL';
+}
+
+/**
+ * Small cover for an episode as this feed shows it in podcast apps, following the feed's episode
+ * artwork setting. {@code feedType} is "channel" or "playlist".
+ */
+export function feedEpisodeCoverSrc(episode, feed, feedType) {
+  const { mode } = parseEpisodeCoverStyle(feed?.episodeCoverStyle);
+  if (!episode || !feed || !feedType || mode === 'ORIGINAL') return episodeCoverSrc(episode);
+  if (mode === 'FEED_COVER') {
+    return feed.customCoverUrl || feed.coverUrl || episodeCoverSrc(episode);
+  }
+  const version = shortHash(`${feed.episodeCoverStyle}|${episode.customizedAt || ''}`);
+  return `/media/feed/${feedType}/${encodeURIComponent(feed.id)}/episodes/${encodeURIComponent(
+    episode.id,
+  )}/cover.jpg?size=small&v=${version}`;
 }
 
 export function isEpisodeCustomized(episode) {

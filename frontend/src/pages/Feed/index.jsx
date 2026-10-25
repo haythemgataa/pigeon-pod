@@ -69,9 +69,10 @@ import EpisodeArtworkSettings from '../../components/EpisodeArtworkSettings';
 import EpisodeDescriptionSettings from '../../components/EpisodeDescriptionSettings';
 import EpisodeEditModal from '../../components/EpisodeEditModal';
 import {
-  episodeCoverSrc,
   episodeDescription,
   episodeTitle,
+  feedEpisodeCoverSrc,
+  hasSquareEpisodeArtwork,
   isEpisodeCustomized,
 } from '../../helpers/episodeDisplay.js';
 import {
@@ -797,7 +798,7 @@ const FeedDetail = () => {
 
   const handlePlay = (episode) => {
     if (episode.downloadStatus !== 'COMPLETED') return;
-    play(episode, feed);
+    play({ ...episode, displayCoverUrl: feedEpisodeCoverSrc(episode, feed, type) }, feed);
   };
 
   const deleteEpisode = async (episodeId) => {
@@ -1044,6 +1045,8 @@ const FeedDetail = () => {
     isPlaylist && String(feed?.feedMode || '').toUpperCase() === 'SINGLE_VIDEO';
   const normalizedFeedSource = String(feed?.source || 'YOUTUBE').toUpperCase();
   const isYoutubePlaylist = isPlaylist && normalizedFeedSource === 'YOUTUBE';
+  // Show episodes the way podcast apps get them: square when the feed squares its artwork
+  const isSquareArtwork = hasSquareEpisodeArtwork(feed);
   const isBilibiliSource = normalizedFeedSource === 'BILIBILI';
   const historyButtonColor = isBilibiliSource ? '#0387bd' : '#ff0034';
   const historyButtonLabel = isBilibiliSource
@@ -1148,11 +1151,15 @@ const FeedDetail = () => {
                   ref={index === episodes.length - 1 ? lastEpisodeElementRef : null}
                 >
                   <Group align="flex-start" wrap="wrap">
-                    <Box pos="relative" w={{ base: '100%', sm: 240 }} flex={{ sm: '0 0 240px' }}>
-                      <AspectRatio ratio={16 / 9}>
+                    <Box
+                      pos="relative"
+                      w={isSquareArtwork ? { base: 180, sm: 135 } : { base: '100%', sm: 240 }}
+                      flex={isSquareArtwork ? { sm: '0 0 135px' } : { sm: '0 0 240px' }}
+                    >
+                      <AspectRatio ratio={isSquareArtwork ? 1 : 16 / 9}>
                         <Image
                           radius="md"
-                          src={episodeCoverSrc(episode)}
+                          src={feedEpisodeCoverSrc(episode, feed, type)}
                           alt={episodeTitle(episode)}
                           referrerPolicy="no-referrer"
                           fit="cover"

@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.asimov.pigeon.service.EpisodeCoverService;
 import top.asimov.pigeon.service.MediaService;
@@ -33,10 +34,11 @@ public class MediaController {
 
   @GetMapping("/feed/{type}/{feedId}/episodes/{episodeId}/cover.jpg")
   public ResponseEntity<?> getStyledEpisodeCover(@PathVariable String type,
-      @PathVariable String feedId, @PathVariable String episodeId) {
-    log.info("[media] styled episode cover requested: feedType={} feedId={} episodeId={}", type,
-        feedId, episodeId);
-    return episodeCoverService.buildCoverResponse(type, feedId, episodeId);
+      @PathVariable String feedId, @PathVariable String episodeId,
+      @RequestParam(required = false) String size) {
+    log.info("[media] styled episode cover requested: feedType={} feedId={} episodeId={} size={}",
+        type, feedId, episodeId, size);
+    return episodeCoverService.buildCoverResponse(type, feedId, episodeId, "small".equals(size));
   }
 
   @GetMapping({"/{episodeId}/cover", "/{episodeId}/cover.jpg"})

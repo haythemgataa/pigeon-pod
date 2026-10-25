@@ -174,6 +174,53 @@ class EpisodeCoverRendererTest {
     assertColorClose(MIDDLE, atBottom.getRGB(160, 317));
   }
 
+  @Test
+  void zoomedCropKeepsTheChosenCorner() {
+    BufferedImage bands = new BufferedImage(320, 180, BufferedImage.TYPE_INT_RGB);
+    Graphics2D graphics = bands.createGraphics();
+    graphics.setColor(LEFT);
+    graphics.fillRect(0, 0, 320, 90);
+    graphics.setColor(RIGHT);
+    graphics.fillRect(0, 90, 320, 90);
+    graphics.dispose();
+
+    BufferedImage top = EpisodeCoverRenderer.render(bands,
+        style("{\"mode\":\"CROP\",\"zoom\":200,\"position\":0,\"pan\":0}"), 0);
+    BufferedImage bottom = EpisodeCoverRenderer.render(bands,
+        style("{\"mode\":\"CROP\",\"zoom\":200,\"position\":0,\"pan\":100}"), 0);
+
+    assertEquals(180, top.getWidth());
+    assertEquals(180, top.getHeight());
+    assertColorClose(LEFT, top.getRGB(90, 90));
+    assertColorClose(RIGHT, bottom.getRGB(90, 90));
+  }
+
+  @Test
+  void zoomedPadMakesTheImageTallerAndTrimsItsSides() {
+    BufferedImage result = EpisodeCoverRenderer.render(landscapeThumbnail(), style(
+        "{\"mode\":\"PAD\",\"fill\":\"COLOR\",\"color\":\"#ffffff\",\"fade\":0,"
+            + "\"zoom\":150,\"pan\":0}"), 0);
+
+    assertEquals(320, result.getWidth());
+    // 180px tall image zoomed to 270px leaves 25px bands
+    assertColorClose(Color.WHITE, result.getRGB(160, 10));
+    assertColorClose(LEFT, result.getRGB(5, 40));
+    // the window starts at the left, so the right third is trimmed away
+    assertColorClose(MIDDLE, result.getRGB(315, 160));
+  }
+
+  @Test
+  void padZoomStopsWhenTheImageFillsTheSquare() {
+    BufferedImage result = EpisodeCoverRenderer.render(landscapeThumbnail(), style(
+        "{\"mode\":\"PAD\",\"fill\":\"COLOR\",\"color\":\"#ffffff\",\"fade\":0,"
+            + "\"zoom\":300}"), 0);
+
+    assertEquals(320, result.getWidth());
+    assertEquals(320, result.getHeight());
+    assertColorClose(MIDDLE, result.getRGB(160, 2));
+    assertColorClose(MIDDLE, result.getRGB(160, 317));
+  }
+
   private static int brightness(int rgb) {
     Color color = new Color(rgb);
     return (color.getRed() + color.getGreen() + color.getBlue()) / 3;

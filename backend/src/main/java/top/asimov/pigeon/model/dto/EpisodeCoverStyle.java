@@ -16,24 +16,31 @@ import top.asimov.pigeon.model.enums.EpisodeCoverMode;
 /**
  * How a feed presents episode artwork in its RSS feed.
  *
- * <p>Stored as JSON on the feed. {@code blur}, {@code fade}, {@code tint} and {@code position} are
- * percentages (0-100); fields that don't apply to the selected mode/fill are dropped by
- * {@link #normalized()}. {@code position} places the crop window (CROP) or the image inside the
+ * <p>Stored as JSON on the feed. {@code blur}, {@code fade}, {@code tint}, {@code position} and
+ * {@code pan} are percentages (0-100); fields that don't apply to the selected mode/fill are dropped
+ * by {@link #normalized()}. {@code position} places the crop window (CROP) or the image inside the
  * square (PAD), from top/left (0) to bottom/right (100). {@code tint} washes image-based
  * backgrounds with a deepened color taken from the image.</p>
+ *
+ * <p>{@code zoom} (100-300) enlarges the thumbnail first. Once zoomed, {@code pan} picks which part
+ * stays on the other axis: the vertical focus of a crop, or the horizontal focus of a padded image.
+ * Both are left out at 100% so unzoomed styles keep their fingerprint.</p>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EpisodeCoverStyle(EpisodeCoverMode mode, EpisodeCoverFill fill, String color,
-                                Integer blur, Integer fade, Integer tint, Integer position) {
+                                Integer blur, Integer fade, Integer tint, Integer position,
+                                Integer zoom, Integer pan) {
 
-  public static final EpisodeCoverStyle ORIGINAL =
-      new EpisodeCoverStyle(EpisodeCoverMode.ORIGINAL, null, null, null, null, null, null);
+  public static final EpisodeCoverStyle ORIGINAL = new EpisodeCoverStyle(
+      EpisodeCoverMode.ORIGINAL, null, null, null, null, null, null, null, null);
 
   public static final String DEFAULT_COLOR = "#000000";
   public static final int DEFAULT_BLUR = 70;
   public static final int DEFAULT_FADE = 30;
   public static final int DEFAULT_TINT = 50;
   public static final int DEFAULT_POSITION = 50;
+  public static final int MIN_ZOOM = 100;
+  public static final int MAX_ZOOM = 300;
 
   private static final Pattern HEX_COLOR = Pattern.compile("^#[0-9a-f]{6}$");
   private static final ObjectMapper MAPPER = new ObjectMapper()
@@ -79,11 +86,13 @@ public record EpisodeCoverStyle(EpisodeCoverMode mode, EpisodeCoverFill fill, St
 
   public EpisodeCoverStyle normalized() {
     EpisodeCoverMode safeMode = mode == null ? EpisodeCoverMode.ORIGINAL : mode;
+    Integer safeZoom = normalizeZoom(zoom);
+    Integer safePan = safeZoom == null ? null : clampPercent(pan, DEFAULT_POSITION);
     return switch (safeMode) {
       case ORIGINAL, FEED_COVER ->
-          new EpisodeCoverStyle(safeMode, null, null, null, null, null, null);
+          new EpisodeCoverStyle(safeMode, null, null, null, null, null, null, null, null);
       case CROP -> new EpisodeCoverStyle(safeMode, null, null, null, null, null,
-          clampPercent(position, DEFAULT_POSITION));
+          clampPercent(position, DEFAULT_POSITION), safeZoom, safePan);
       case PAD -> {
         EpisodeCoverFill safeFill = fill == null ? EpisodeCoverFill.PROGRESSIVE : fill;
         boolean isColorFill = safeFill == EpisodeCoverFill.COLOR;
@@ -92,9 +101,19 @@ public record EpisodeCoverStyle(EpisodeCoverMode mode, EpisodeCoverFill fill, St
             isColorFill ? null : clampPercent(blur, DEFAULT_BLUR),
             clampPercent(fade, DEFAULT_FADE),
             isColorFill ? null : clampPercent(tint, DEFAULT_TINT),
-            clampPercent(position, DEFAULT_POSITION));
+            clampPercent(position, DEFAULT_POSITION), safeZoom, safePan);
       }
     };
+  }
+
+  /** Zoom as a percentage, 100 when not zoomed. */
+  public int zoomPercent() {
+    return zoom == null ? MIN_ZOOM : zoom;
+  }
+
+  /** Focus on the second axis once zoomed (see class docs), 50 = centered. */
+  public int panPercent() {
+    return pan == null ? DEFAULT_POSITION : pan;
   }
 
   /** Whether episode covers have to be re-drawn (as opposed to linked as they are). */
@@ -114,6 +133,14 @@ public record EpisodeCoverStyle(EpisodeCoverMode mode, EpisodeCoverFill fill, St
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Failed to serialize episode cover style", e);
     }
+  }
+
+  /** {@code null} for no zoom, else 101-300. */
+  private static Integer normalizeZoom(Integer value) {
+    if (value == null || value <= MIN_ZOOM) {
+      return null;
+    }
+    return Math.min(MAX_ZOOM, value);
   }
 
   private static int clampPercent(Integer value, int fallback) {

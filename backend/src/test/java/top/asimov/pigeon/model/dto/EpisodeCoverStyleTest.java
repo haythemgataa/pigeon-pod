@@ -81,6 +81,31 @@ class EpisodeCoverStyleTest {
   }
 
   @Test
+  void zoomIsClampedAndOnlyStoredWhenZoomedIn() {
+    EpisodeCoverStyle notZoomed = EpisodeCoverStyle.parse(
+        "{\"mode\":\"CROP\",\"zoom\":100,\"pan\":10}");
+    EpisodeCoverStyle tooFar = EpisodeCoverStyle.parse("{\"mode\":\"CROP\",\"zoom\":900}");
+    EpisodeCoverStyle zoomed = EpisodeCoverStyle.parse(
+        "{\"mode\":\"PAD\",\"zoom\":150,\"pan\":120}");
+
+    assertNull(notZoomed.zoom());
+    assertNull(notZoomed.pan());
+    assertEquals(100, notZoomed.zoomPercent());
+    assertEquals(50, notZoomed.panPercent());
+    assertEquals(300, tooFar.zoom());
+    assertEquals(50, tooFar.pan());
+    assertEquals(150, zoomed.zoom());
+    assertEquals(100, zoomed.pan());
+  }
+
+  @Test
+  void unzoomedStylesKeepTheirFingerprint() {
+    assertEquals(EpisodeCoverStyle.parse("{\"mode\":\"CROP\",\"position\":30}").fingerprint(),
+        EpisodeCoverStyle.parse("{\"mode\":\"CROP\",\"position\":30,\"zoom\":100}")
+            .fingerprint());
+  }
+
+  @Test
   void feedCoverModeDoesNotRequireRendering() {
     EpisodeCoverStyle style = EpisodeCoverStyle.parse("{\"mode\":\"FEED_COVER\",\"blur\":40}");
 

@@ -9,6 +9,8 @@ export const DEFAULT_EPISODE_COVER_STYLE = {
   fade: 30,
   tint: 50,
   position: 50,
+  zoom: 100,
+  pan: 50,
 };
 
 /** Reads the JSON string stored on a feed into a complete style object for the form. */
@@ -26,11 +28,12 @@ export function parseEpisodeCoverStyle(value) {
 
 /** Keeps only the settings that apply to the selected mode, mirroring the backend. */
 export function compactEpisodeCoverStyle(style) {
-  const { mode, fill, color, blur, fade, tint, position } = style;
-  if (mode === 'CROP') return { mode, position };
+  const { mode, fill, color, blur, fade, tint, position, zoom, pan } = style;
+  const zoomSettings = zoom > 100 ? { zoom, pan } : {};
+  if (mode === 'CROP') return { mode, position, ...zoomSettings };
   if (mode !== 'PAD') return { mode };
-  if (fill === 'COLOR') return { mode, fill, color, fade, position };
-  return { mode, fill, blur, fade, tint, position };
+  if (fill === 'COLOR') return { mode, fill, color, fade, position, ...zoomSettings };
+  return { mode, fill, blur, fade, tint, position, ...zoomSettings };
 }
 
 /** Value sent to the API: null keeps the original thumbnails. */

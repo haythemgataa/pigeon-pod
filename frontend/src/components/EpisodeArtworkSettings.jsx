@@ -17,6 +17,7 @@ import {
 import { useDebouncedValue } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
 import { API } from '../helpers';
+import { episodeCoverSrc, episodeTitle } from '../helpers/episodeDisplay';
 import {
   buildEpisodeCoverPreviewUrl,
   compactEpisodeCoverStyle,
@@ -43,15 +44,15 @@ function pickPreviewEpisodes(episodes) {
 }
 
 /** Slider whose value is shown next to its label, so no tooltip covers the text above it. */
-function PercentSlider({ label, description, value, onChange, marks }) {
+function PercentSlider({ label, description, value, onChange, marks, min = 0, max = 100 }) {
   return (
     <Input.Wrapper label={`${label} · ${value}%`} description={description}>
       <Slider
         mt={6}
         mb={marks ? 'lg' : 0}
         mx={marks ? 'lg' : 0}
-        min={0}
-        max={100}
+        min={min}
+        max={max}
         value={value}
         onChange={onChange}
         label={null}
@@ -125,6 +126,34 @@ const EpisodeArtworkSettings = ({ value, onChange, feedType, feedId, feedCoverUr
 
   const updateStyle = (field, fieldValue) => onChange({ ...value, [field]: fieldValue });
 
+  const isZoomed = value.zoom > 100;
+  const centerLabel = t('episode_artwork_center', { defaultValue: 'Center' });
+  const horizontalMarks = [
+    { value: 0, label: t('episode_artwork_left', { defaultValue: 'Left' }) },
+    { value: 50, label: centerLabel },
+    { value: 100, label: t('episode_artwork_right', { defaultValue: 'Right' }) },
+  ];
+  const verticalMarks = [
+    { value: 0, label: t('episode_artwork_top', { defaultValue: 'Top' }) },
+    { value: 50, label: centerLabel },
+    { value: 100, label: t('episode_artwork_bottom', { defaultValue: 'Bottom' }) },
+  ];
+  const horizontalPositionLabel = t('episode_artwork_horizontal_position', {
+    defaultValue: 'Horizontal position',
+  });
+  const zoomSlider = (
+    <PercentSlider
+      label={t('episode_artwork_zoom', { defaultValue: 'Zoom' })}
+      description={t('episode_artwork_zoom_desc', {
+        defaultValue: 'Enlarges the thumbnail. The parts that no longer fit are trimmed.',
+      })}
+      min={100}
+      max={300}
+      value={value.zoom}
+      onChange={(zoom) => updateStyle('zoom', zoom)}
+    />
+  );
+
   const modeHints = {
     ORIGINAL: t('episode_artwork_original_hint', {
       defaultValue: 'Uses the thumbnail as is. Most podcast apps crop or squeeze it.',
@@ -142,8 +171,7 @@ const EpisodeArtworkSettings = ({ value, onChange, feedType, feedId, feedCoverUr
 
   const buildPreviewSource = (episode) => {
     if (previewStyle.mode === 'FEED_COVER') return feedCoverUrl;
-    if (!requiresCoverRendering(previewStyle))
-      return episode.maxCoverUrl || episode.defaultCoverUrl;
+    if (!requiresCoverRendering(previewStyle)) return episodeCoverSrc(episode);
     return buildEpisodeCoverPreviewUrl(
       API.defaults.baseURL,
       feedType,
@@ -221,12 +249,17 @@ const EpisodeArtworkSettings = ({ value, onChange, feedType, feedId, feedCoverUr
             label={t('episode_artwork_image_position', { defaultValue: 'Image position' })}
             value={value.position}
             onChange={(position) => updateStyle('position', position)}
-            marks={[
-              { value: 0, label: t('episode_artwork_top', { defaultValue: 'Top' }) },
-              { value: 50, label: t('episode_artwork_center', { defaultValue: 'Center' }) },
-              { value: 100, label: t('episode_artwork_bottom', { defaultValue: 'Bottom' }) },
-            ]}
+            marks={verticalMarks}
           />
+          {zoomSlider}
+          {isZoomed && (
+            <PercentSlider
+              label={horizontalPositionLabel}
+              value={value.pan}
+              onChange={(pan) => updateStyle('pan', pan)}
+              marks={horizontalMarks}
+            />
+          )}
 
           {value.fill === 'COLOR' ? (
             <ColorInput
@@ -267,16 +300,23 @@ const EpisodeArtworkSettings = ({ value, onChange, feedType, feedId, feedCoverUr
       )}
 
       {value.mode === 'CROP' && (
-        <PercentSlider
-          label={t('episode_artwork_crop_position', { defaultValue: 'Crop position' })}
-          value={value.position}
-          onChange={(position) => updateStyle('position', position)}
-          marks={[
-            { value: 0, label: t('episode_artwork_left', { defaultValue: 'Left' }) },
-            { value: 50, label: t('episode_artwork_center', { defaultValue: 'Center' }) },
-            { value: 100, label: t('episode_artwork_right', { defaultValue: 'Right' }) },
-          ]}
-        />
+        <>
+          {zoomSlider}
+          <PercentSlider
+            label={horizontalPositionLabel}
+            value={value.position}
+            onChange={(position) => updateStyle('position', position)}
+            marks={horizontalMarks}
+          />
+          {isZoomed && (
+            <PercentSlider
+              label={t('episode_artwork_vertical_position', { defaultValue: 'Vertical position' })}
+              value={value.pan}
+              onChange={(pan) => updateStyle('pan', pan)}
+              marks={verticalMarks}
+            />
+          )}
+        </>
       )}
 
       <Input.Wrapper label={t('episode_artwork_preview', { defaultValue: 'Preview' })}>
@@ -292,7 +332,7 @@ const EpisodeArtworkSettings = ({ value, onChange, feedType, feedId, feedCoverUr
               <PreviewTile
                 key={episode.id}
                 src={buildPreviewSource(episode)}
-                title={episode.title}
+                title={episodeTitle(episode)}
                 fit={previewStyle.mode === 'ORIGINAL' ? 'contain' : 'cover'}
                 failedLabel={t('episode_artwork_preview_failed', { defaultValue: 'No preview' })}
               />

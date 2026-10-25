@@ -59,7 +59,8 @@ public final class EpisodeCoverRenderer {
     BufferedImage image = downscale(source, maxSide);
     EpisodeCoverStyle normalized = style.normalized();
     return switch (normalized.mode()) {
-      case CROP -> crop(image, normalized.position());
+      case CROP -> crop(image, normalized.position(), normalized.zoomPercent(),
+          normalized.panPercent());
       case PAD -> pad(image, normalized);
       case ORIGINAL, FEED_COVER -> image;
     };
@@ -95,14 +96,26 @@ public final class EpisodeCoverRenderer {
         Math.max(1, (int) Math.round(image.getHeight() * ratio)));
   }
 
-  static BufferedImage crop(BufferedImage image, int positionPercent) {
+  /**
+   * Square crop. Unzoomed, {@code positionPercent} slides the square along the long side. Zoomed
+   * in, the square is smaller and {@code positionPercent}/{@code panPercent} place it horizontally
+   * and vertically; it is then scaled back up to the unzoomed size.
+   */
+  static BufferedImage crop(BufferedImage image, int positionPercent, int zoomPercent,
+      int panPercent) {
     int width = image.getWidth();
     int height = image.getHeight();
-    int side = Math.min(width, height);
-    int offset = (int) Math.round((Math.max(width, height) - side) * positionPercent / 100.0);
-    int x = width > height ? offset : 0;
-    int y = height > width ? offset : 0;
-    return copy(image.getSubimage(x, y, side, side));
+    int fullSide = Math.min(width, height);
+    if (zoomPercent <= 100) {
+      int offset = (int) Math.round((Math.max(width, height) - fullSide) * positionPercent / 100.0);
+      int x = width > height ? offset : 0;
+      int y = height > width ? offset : 0;
+      return copy(image.getSubimage(x, y, fullSide, fullSide));
+    }
+    int side = Math.max(1, (int) Math.round(fullSide * 100.0 / zoomPercent));
+    int x = (int) Math.round((width - side) * positionPercent / 100.0);
+    int y = (int) Math.round((height - side) * panPercent / 100.0);
+    return scale(image.getSubimage(x, y, side, side), fullSide, fullSide);
   }
 
   static BufferedImage pad(BufferedImage image, EpisodeCoverStyle style) {
@@ -112,6 +125,14 @@ public final class EpisodeCoverRenderer {
     if (image.getHeight() > image.getWidth()) {
       return transpose(pad(transpose(image), style));
     }
+    BufferedImage zoomed = zoomForPad(image, style.zoomPercent(), style.panPercent());
+    if (zoomed.getWidth() == zoomed.getHeight()) {
+      return zoomed;
+    }
+    return padLandscape(zoomed, style);
+  }
+
+  private static BufferedImage padLandscape(BufferedImage image, EpisodeCoverStyle style) {
     int side = image.getWidth();
     int top = (int) Math.round((side - image.getHeight()) * style.position() / 100.0);
     Layout layout = new Layout(side, top, top + image.getHeight());
@@ -309,9 +330,27 @@ public final class EpisodeCoverRenderer {
     return background;
   }
 
+  /**
+   * Enlarges a landscape image for padding while keeping its width: the sides are trimmed around
+   * {@code panPercent}, and the image gets taller, leaving smaller bands. Zoom stops once the image
+   * fills the square.
+   */
+  static BufferedImage zoomForPad(BufferedImage image, int zoomPercent, int panPercent) {
+    int width = image.getWidth();
+    int height = image.getHeight();
+    double zoom = Math.min(zoomPercent / 100.0, (double) width / height);
+    if (zoom <= 1.0) {
+      return image;
+    }
+    int windowWidth = Math.max(1, (int) Math.round(width / zoom));
+    int x = (int) Math.round((width - windowWidth) * panPercent / 100.0);
+    int zoomedHeight = Math.min(width, (int) Math.round(height * zoom));
+    return scale(image.getSubimage(x, 0, windowWidth, height), width, zoomedHeight);
+  }
+
   /** Scales the image to cover a square, cutting the long side equally on both ends. */
   private static BufferedImage coverSquare(BufferedImage image, int side) {
-    return scale(crop(image, 50), side, side);
+    return scale(crop(image, 50, 100, 50), side, side);
   }
 
   /** Returns a copy whose top and/or bottom rows fade to transparent along a smoothstep curve. */

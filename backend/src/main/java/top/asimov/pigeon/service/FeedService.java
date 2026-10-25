@@ -200,8 +200,17 @@ public class FeedService {
   public String previewEpisodeDescription(FeedType type, String id, String episodeId,
       String template) {
     Feed feed = detail(type, id);
-    Episode episode = StringUtils.hasText(episodeId) ? episodeMapper.selectById(episodeId) : null;
-    if (feed == null || episode == null) {
+    if (feed == null || !StringUtils.hasText(episodeId)) {
+      throw new BusinessException("Episode not found");
+    }
+    // Playlist feeds need the episode's source channel, as the RSS feed does
+    Episode episode = type == FeedType.PLAYLIST
+        ? episodeMapper.selectPlaylistEpisode(id, episodeId)
+        : null;
+    if (episode == null) {
+      episode = episodeMapper.selectById(episodeId);
+    }
+    if (episode == null) {
       throw new BusinessException("Episode not found");
     }
     return rssService.previewEpisodeDescription(feed, episode, template);

@@ -57,7 +57,14 @@ function DescriptionPreview({ text }) {
  * description only, or a custom format with placeholders. {@code value} is the stored template,
  * {@code null} for the default.
  */
-const EpisodeDescriptionSettings = ({ value, onChange, feedType, feedId, episodes }) => {
+const EpisodeDescriptionSettings = ({
+  value,
+  onChange,
+  feedType,
+  feedId,
+  feedSource,
+  episodes,
+}) => {
   const { t } = useTranslation();
   const [mode, setMode] = useState(() => modeOf(value));
   const [preview, setPreview] = useState(null);
@@ -109,11 +116,18 @@ const EpisodeDescriptionSettings = ({ value, onChange, feedType, feedId, episode
     });
   };
 
+  // PigeonPod only adds the "Source channel" line to YouTube playlist feeds
+  const addsSourceChannel =
+    feedType === 'playlist' && String(feedSource || '').toUpperCase() === 'YOUTUBE';
   const modeHints = {
-    DEFAULT: t('episode_description_default_hint', {
-      defaultValue:
-        'The original description plus a link to the source video (and the source channel for playlists).',
-    }),
+    DEFAULT: addsSourceChannel
+      ? t('episode_description_default_hint_playlist', {
+          defaultValue:
+            'A “Source channel” line at the top, then the original description and a link to the source video.',
+        })
+      : t('episode_description_default_hint', {
+          defaultValue: 'The original description, followed by a link to the source video.',
+        }),
     ORIGINAL: t('episode_description_original_hint', {
       defaultValue: 'Only the original description, exactly as published.',
     }),

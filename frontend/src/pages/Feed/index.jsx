@@ -1793,6 +1793,7 @@ const FeedDetail = () => {
               onChange={setEditingDescriptionTemplate}
               feedType={type}
               feedId={feedId}
+              feedSource={feed.source}
               episodes={episodes}
             />
           )}

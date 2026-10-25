@@ -99,6 +99,9 @@ public abstract class Feed {
   @TableField(updateStrategy = FieldStrategy.ALWAYS)
   private String episodeDescriptionTemplate;
 
+  @TableField(updateStrategy = FieldStrategy.ALWAYS)
+  private String category;
+
   private String lastSyncVideoId;
 
   private LocalDateTime lastSyncTimestamp;

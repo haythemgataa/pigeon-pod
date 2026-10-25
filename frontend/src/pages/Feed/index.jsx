@@ -3,6 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
 import { PODCAST_LANGUAGE_OPTIONS } from '../../constants/podcastLanguages.js';
 import {
+  DEFAULT_PODCAST_CATEGORY,
+  PODCAST_CATEGORY_OPTIONS,
+} from '../../constants/podcastCategories.js';
+import {
   Container,
   Title,
   Text,
@@ -125,6 +129,7 @@ const FeedDetail = () => {
   const [editingLanguage, setEditingLanguage] = useState('');
   const [editingCoverStyle, setEditingCoverStyle] = useState(() => parseEpisodeCoverStyle(null));
   const [editingDescriptionTemplate, setEditingDescriptionTemplate] = useState(null);
+  const [editingCategory, setEditingCategory] = useState('');
   const [editingEpisode, setEditingEpisode] = useState(null);
   const [customCoverFile, setCustomCoverFile] = useState(null);
 
@@ -371,6 +376,7 @@ const FeedDetail = () => {
       ...(!isUnified && {
         episodeCoverStyle: serializeEpisodeCoverStyle(editingCoverStyle),
         episodeDescriptionTemplate: editingDescriptionTemplate,
+        category: editingCategory || null,
       }),
     });
 
@@ -684,6 +690,7 @@ const FeedDetail = () => {
     setEditingLanguage(feed.language || '');
     setEditingCoverStyle(parseEpisodeCoverStyle(feed.episodeCoverStyle));
     setEditingDescriptionTemplate(feed.episodeDescriptionTemplate || null);
+    setEditingCategory(feed.category || '');
     openCustomizeFeedModal();
   };
 
@@ -1726,6 +1733,25 @@ const FeedDetail = () => {
             searchable
             clearable
           />
+          {!isUnified && (
+            <Select
+              label={t('podcast_category', { defaultValue: 'Podcast category' })}
+              description={t('podcast_category_desc', {
+                defaultValue:
+                  'Shown in podcast apps and used by directories like Apple Podcasts to file the show.',
+              })}
+              placeholder={t('podcast_category_placeholder', {
+                defaultValue: '{{category}} (default)',
+                category: DEFAULT_PODCAST_CATEGORY,
+              })}
+              data={PODCAST_CATEGORY_OPTIONS}
+              value={editingCategory || null}
+              onChange={(value) => setEditingCategory(value || '')}
+              searchable
+              clearable
+              maxDropdownHeight={280}
+            />
+          )}
           <Grid align="flex-end">
             <Grid.Col span="auto">
               <FileInput

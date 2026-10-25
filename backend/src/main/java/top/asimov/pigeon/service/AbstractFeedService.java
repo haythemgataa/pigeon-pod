@@ -18,6 +18,7 @@ import top.asimov.pigeon.event.DownloadTaskEvent.DownloadTargetType;
 import top.asimov.pigeon.exception.BusinessException;
 import top.asimov.pigeon.handler.FeedEpisodeHelper;
 import top.asimov.pigeon.model.dto.EpisodeCoverStyle;
+import top.asimov.pigeon.model.dto.PodcastCategory;
 import top.asimov.pigeon.model.entity.Episode;
 import top.asimov.pigeon.model.entity.Feed;
 import top.asimov.pigeon.model.response.FeedConfigUpdateResult;
@@ -133,6 +134,7 @@ public abstract class AbstractFeedService<F extends Feed> {
         EpisodeCoverStyle.normalizeForStorage(configuration.getEpisodeCoverStyle()));
     existingFeed.setEpisodeDescriptionTemplate(
         EpisodeDescriptionTemplate.normalize(configuration.getEpisodeDescriptionTemplate()));
+    existingFeed.setCategory(PodcastCategory.normalize(configuration.getCategory()));
     applyAdditionalMutableFields(existingFeed, configuration);
   }
 
@@ -152,6 +154,7 @@ public abstract class AbstractFeedService<F extends Feed> {
     feed.setEpisodeCoverStyle(EpisodeCoverStyle.normalizeForStorage(feed.getEpisodeCoverStyle()));
     feed.setEpisodeDescriptionTemplate(
         EpisodeDescriptionTemplate.normalize(feed.getEpisodeDescriptionTemplate()));
+    feed.setCategory(PodcastCategory.normalize(feed.getCategory()));
     return saveFeedAsync(feed);
   }
 

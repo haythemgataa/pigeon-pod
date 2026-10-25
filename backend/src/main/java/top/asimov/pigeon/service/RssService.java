@@ -48,6 +48,7 @@ import org.springframework.web.util.HtmlUtils;
 import top.asimov.pigeon.config.AppBaseUrlResolver;
 import top.asimov.pigeon.exception.BusinessException;
 import top.asimov.pigeon.model.dto.EpisodeCoverStyle;
+import top.asimov.pigeon.model.dto.PodcastCategory;
 import top.asimov.pigeon.model.dto.SubtitleInfo;
 import top.asimov.pigeon.model.entity.Channel;
 import top.asimov.pigeon.model.entity.Episode;
@@ -79,7 +80,6 @@ public class RssService {
   private static final Namespace PODCAST_NS = Namespace.getNamespace("podcast",
       "https://podcastindex.org/namespace/1.0");
   private static final Namespace ITUNES_NS = Namespace.getNamespace("itunes", ITunes.URI);
-  private static final String ITUNES_CATEGORY_TEXT = "Technology";
   private static final String ITUNES_EXPLICIT_TEXT = "false";
 
   public RssService(ChannelService channelService, EpisodeService episodeService,
@@ -119,7 +119,7 @@ public class RssService {
         language);
     feed.setEntries(buildEntries(episodes, appBaseUrl, channel.getSource(), false,
         episodeCoverResolver(channel, appBaseUrl, coverUrl), channel));
-    return writeFeed(feed, coverUrl);
+    return writeFeed(feed, coverUrl, PodcastCategory.parse(channel.getCategory()));
   }
 
   public static final int DEFAULT_UNIFIED_RSS_LIMIT = 300;
@@ -161,7 +161,7 @@ public class RssService {
         language);
     feed.setEntries(buildEntries(episodes, appBaseUrl, null, false,
         episodeCoverResolver(null, appBaseUrl, null), null));
-    return writeFeed(feed, coverUrl);
+    return writeFeed(feed, coverUrl, PodcastCategory.DEFAULT);
   }
 
   public String generatePlaylistRssFeed(String playlistId) throws MalformedURLException {
@@ -190,7 +190,7 @@ public class RssService {
     boolean withPlaylistSourcePrefix = "YOUTUBE".equalsIgnoreCase(playlist.getSource());
     feed.setEntries(buildEntries(episodes, appBaseUrl, playlist.getSource(), withPlaylistSourcePrefix,
         episodeCoverResolver(playlist, appBaseUrl, coverUrl), playlist));
-    return writeFeed(feed, coverUrl);
+    return writeFeed(feed, coverUrl, PodcastCategory.parse(playlist.getCategory()));
   }
 
   /**
@@ -255,7 +255,7 @@ public class RssService {
     feedInfo.setAuthor(StringUtils.hasText(author) ? author.trim() : title);
     feedInfo.setBlock(true);
     feedInfo.setSummary(feedDescription);
-    feedInfo.setCategories(Collections.singletonList(new Category(ITUNES_CATEGORY_TEXT)));
+    feedInfo.setCategories(Collections.singletonList(new Category(PodcastCategory.DEFAULT.name())));
     feed.getModules().add(feedInfo);
     return feed;
   }
@@ -595,7 +595,7 @@ public class RssService {
     }
   }
 
-  private String writeFeed(SyndFeed feed, String coverUrl) {
+  private String writeFeed(SyndFeed feed, String coverUrl, PodcastCategory category) {
     try (StringWriter writer = new StringWriter()) {
       SyndFeedOutput output = new SyndFeedOutput();
 
@@ -610,7 +610,7 @@ public class RssService {
       root.addNamespaceDeclaration(PODCAST_NS);
 
       // 4. 使用 JDOM 的输出工具将修改后的 Document 写出
-      applyGlobalItunesTags(document, coverUrl);
+      applyGlobalItunesTags(document, coverUrl, category);
       wrapItemDescriptionWithCdata(document);
       XMLOutputter xmlOutputter = new XMLOutputter(Format.getPrettyFormat());
       xmlOutputter.output(document, writer);
@@ -664,7 +664,8 @@ public class RssService {
     return normalized;
   }
 
-  private void applyGlobalItunesTags(Document document, String coverUrl) {
+  private void applyGlobalItunesTags(Document document, String coverUrl,
+      PodcastCategory category) {
     Element root = document.getRootElement();
     Element channel = root.getChild("channel");
     if (channel == null) {
@@ -678,7 +679,7 @@ public class RssService {
     // We insert itunes:explicit, itunes:category, and itunes:image at the position just before
     // the first <item> child so that validators and Apple Podcasts can discover them reliably.
     upsertItunesExplicit(channel);
-    normalizeItunesCategory(channel);
+    normalizeItunesCategory(channel, category);
     upsertItunesImage(channel, coverUrl);
   }
 
@@ -704,10 +705,15 @@ public class RssService {
    * Replaces any existing {@code <itunes:category>} elements and inserts a canonical one
    * immediately before the first {@code <item>} child.
    */
-  private void normalizeItunesCategory(Element channel) {
+  private void normalizeItunesCategory(Element channel, PodcastCategory category) {
     channel.removeChildren("category", ITUNES_NS);
     Element categoryElement = new Element("category", ITUNES_NS);
-    categoryElement.setAttribute("text", ITUNES_CATEGORY_TEXT);
+    categoryElement.setAttribute("text", category.name());
+    if (StringUtils.hasText(category.subcategory())) {
+      Element subcategoryElement = new Element("category", ITUNES_NS);
+      subcategoryElement.setAttribute("text", category.subcategory());
+      categoryElement.addContent(subcategoryElement);
+    }
     insertBeforeFirstItem(channel, categoryElement);
   }
 

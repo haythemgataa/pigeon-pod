@@ -661,6 +661,28 @@ class RssServiceTest {
         .startsWith("Original\n\nSource video: <a href=\"https://youtu.be/video_003\">"));
   }
 
+  @Test
+  void testFeedCategoryIsWrittenWithSubcategory() throws Exception {
+    Channel channel = coverStyleChannel(null);
+    channel.setCategory("Society & Culture|Documentary");
+    stubChannelFeed(channel, coverStyleEpisode());
+
+    String rssXml = rssService.generateRssFeed("ytchannel");
+
+    assertTrue(rssXml.contains("<itunes:category text=\"Society &amp; Culture\">"), rssXml);
+    assertTrue(rssXml.contains("<itunes:category text=\"Documentary\" />"), rssXml);
+    assertFalse(rssXml.contains("Technology"));
+  }
+
+  @Test
+  void testFeedCategoryDefaultsToTechnology() throws Exception {
+    stubChannelFeed(coverStyleChannel(null), coverStyleEpisode());
+
+    String rssXml = rssService.generateRssFeed("ytchannel");
+
+    assertTrue(rssXml.contains("<itunes:category text=\"Technology\" />"), rssXml);
+  }
+
   private Channel coverStyleChannel(String episodeCoverStyle) {
     Channel channel = new Channel();
     channel.setId("ytchannel");

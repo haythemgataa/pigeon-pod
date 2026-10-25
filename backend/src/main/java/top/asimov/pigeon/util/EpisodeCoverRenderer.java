@@ -139,7 +139,8 @@ public final class EpisodeCoverRenderer {
     return switch (style.fill()) {
       case PROGRESSIVE -> progressive(image, layout, style);
       case BLUR -> layered(image, layout, style.fade(),
-          wash(blur(coverSquare(image, side), style.blur()), image, layout, style.tint(), 0));
+          wash(blur(coverSquare(image, side), style.blur()), image, layout, style.tint(),
+              style.tintColor(), 0));
       case COLOR -> layered(image, layout, style.fade(), solid(side, Color.decode(style.color())));
     };
   }
@@ -199,7 +200,7 @@ public final class EpisodeCoverRenderer {
         output[row + x] = mix(levels[lower][row + x], levels[lower + 1][row + x], fraction);
       }
     }
-    return wash(result, image, layout, style.tint(), insideReach);
+    return wash(result, image, layout, style.tint(), style.tintColor(), insideReach);
   }
 
   /**
@@ -242,12 +243,13 @@ public final class EpisodeCoverRenderer {
   }
 
   /**
-   * Washes the bands with a deepened version of the color found near each image edge, stronger
-   * toward the outer edge of the square, and dithers them so dark gradients don't band.
-   * {@code insideReach} lets the wash begin slightly inside the image.
+   * Washes the bands with {@code tintColor}, or when it is {@code null} a deepened version of the
+   * color found near each image edge, stronger toward the outer edge of the square, and dithers
+   * them so dark gradients don't band. {@code insideReach} lets the wash begin slightly inside the
+   * image.
    */
   private static BufferedImage wash(BufferedImage canvas, BufferedImage image, Layout layout,
-      int tintPercent, double insideReach) {
+      int tintPercent, String tintColor, double insideReach) {
     if (tintPercent <= 0) {
       return canvas;
     }
@@ -257,6 +259,7 @@ public final class EpisodeCoverRenderer {
     Color topColor = averageColor(image, 0, sample);
     Color bottomColor = averageColor(image, height - sample, height);
     double maxAlpha = MAX_WASH_ALPHA * tintPercent / 100.0;
+    Integer customColor = tintColor == null ? null : Color.decode(tintColor).getRGB() & 0xFFFFFF;
     double lead = insideReach / 2;
     int[] pixels = pixels(canvas);
     Random noise = new Random(side);
@@ -271,7 +274,7 @@ public final class EpisodeCoverRenderer {
       }
       t = Math.min(1, t);
       Color base = topT >= bottomT ? topColor : bottomColor;
-      int washColor = deepen(base, t);
+      int washColor = customColor != null ? customColor : deepen(base, t);
       double alpha = maxAlpha * Math.pow(t, 0.9);
       int row = y * side;
       for (int x = 0; x < side; x++) {

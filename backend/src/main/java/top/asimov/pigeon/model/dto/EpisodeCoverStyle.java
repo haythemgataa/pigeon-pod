@@ -19,8 +19,9 @@ import top.asimov.pigeon.model.enums.EpisodeCoverMode;
  * <p>Stored as JSON on the feed. {@code blur}, {@code fade}, {@code tint}, {@code position} and
  * {@code pan} are percentages (0-100); fields that don't apply to the selected mode/fill are dropped
  * by {@link #normalized()}. {@code position} places the crop window (CROP) or the image inside the
- * square (PAD), from top/left (0) to bottom/right (100). {@code tint} washes image-based
- * backgrounds with a deepened color taken from the image.</p>
+ * square (PAD), from top/left (0) to bottom/right (100). {@code tint} is the strength of a color
+ * wash over image-based backgrounds: {@code tintColor} when set, else a deepened color taken from
+ * the image.</p>
  *
  * <p>{@code zoom} (100-300) enlarges the thumbnail first. Once zoomed, {@code pan} picks which part
  * stays on the other axis: the vertical focus of a crop, or the horizontal focus of a padded image.
@@ -28,11 +29,11 @@ import top.asimov.pigeon.model.enums.EpisodeCoverMode;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record EpisodeCoverStyle(EpisodeCoverMode mode, EpisodeCoverFill fill, String color,
-                                Integer blur, Integer fade, Integer tint, Integer position,
-                                Integer zoom, Integer pan) {
+                                Integer blur, Integer fade, Integer tint, String tintColor,
+                                Integer position, Integer zoom, Integer pan) {
 
   public static final EpisodeCoverStyle ORIGINAL = new EpisodeCoverStyle(
-      EpisodeCoverMode.ORIGINAL, null, null, null, null, null, null, null, null);
+      EpisodeCoverMode.ORIGINAL, null, null, null, null, null, null, null, null, null);
 
   public static final String DEFAULT_COLOR = "#000000";
   public static final int DEFAULT_BLUR = 70;
@@ -90,8 +91,8 @@ public record EpisodeCoverStyle(EpisodeCoverMode mode, EpisodeCoverFill fill, St
     Integer safePan = safeZoom == null ? null : clampPercent(pan, DEFAULT_POSITION);
     return switch (safeMode) {
       case ORIGINAL, FEED_COVER ->
-          new EpisodeCoverStyle(safeMode, null, null, null, null, null, null, null, null);
-      case CROP -> new EpisodeCoverStyle(safeMode, null, null, null, null, null,
+          new EpisodeCoverStyle(safeMode, null, null, null, null, null, null, null, null, null);
+      case CROP -> new EpisodeCoverStyle(safeMode, null, null, null, null, null, null,
           clampPercent(position, DEFAULT_POSITION), safeZoom, safePan);
       case PAD -> {
         EpisodeCoverFill safeFill = fill == null ? EpisodeCoverFill.PROGRESSIVE : fill;
@@ -101,6 +102,7 @@ public record EpisodeCoverStyle(EpisodeCoverMode mode, EpisodeCoverFill fill, St
             isColorFill ? null : clampPercent(blur, DEFAULT_BLUR),
             clampPercent(fade, DEFAULT_FADE),
             isColorFill ? null : clampPercent(tint, DEFAULT_TINT),
+            isColorFill ? null : normalizeOptionalColor(tintColor),
             clampPercent(position, DEFAULT_POSITION), safeZoom, safePan);
       }
     };
@@ -148,6 +150,15 @@ public record EpisodeCoverStyle(EpisodeCoverMode mode, EpisodeCoverFill fill, St
       return fallback;
     }
     return Math.max(0, Math.min(100, value));
+  }
+
+  /** A valid lowercase hex color, or {@code null} for "use the image's own colors". */
+  private static String normalizeOptionalColor(String value) {
+    if (!StringUtils.hasText(value)) {
+      return null;
+    }
+    String candidate = value.trim().toLowerCase(Locale.ROOT);
+    return HEX_COLOR.matcher(candidate).matches() ? candidate : null;
   }
 
   private static String normalizeColor(String value) {

@@ -106,6 +106,20 @@ class EpisodeCoverStyleTest {
   }
 
   @Test
+  void washColorIsKeptForImageBackgroundsOnly() {
+    EpisodeCoverStyle progressive = EpisodeCoverStyle.parse(
+        "{\"mode\":\"PAD\",\"fill\":\"PROGRESSIVE\",\"tintColor\":\"#FF8800\"}");
+    EpisodeCoverStyle invalid = EpisodeCoverStyle.parse(
+        "{\"mode\":\"PAD\",\"fill\":\"BLUR\",\"tintColor\":\"orange\"}");
+    EpisodeCoverStyle colorFill = EpisodeCoverStyle.parse(
+        "{\"mode\":\"PAD\",\"fill\":\"COLOR\",\"tintColor\":\"#ff8800\"}");
+
+    assertEquals("#ff8800", progressive.tintColor());
+    assertNull(invalid.tintColor());
+    assertNull(colorFill.tintColor());
+  }
+
+  @Test
   void feedCoverModeDoesNotRequireRendering() {
     EpisodeCoverStyle style = EpisodeCoverStyle.parse("{\"mode\":\"FEED_COVER\",\"blur\":40}");
 

@@ -26,6 +26,7 @@ import {
 
 const PREVIEW_COUNT = 3;
 const PREVIEW_DEBOUNCE_MS = 300;
+const DEFAULT_CUSTOM_TINT = '#1d2b4f';
 const COLOR_SWATCHES = [
   '#000000',
   '#1a1b1e',
@@ -125,6 +126,14 @@ const EpisodeArtworkSettings = ({ value, onChange, feedType, feedId, feedCoverUr
   const previewEpisodes = pickPreviewEpisodes(episodes);
 
   const updateStyle = (field, fieldValue) => onChange({ ...value, [field]: fieldValue });
+
+  // Kept apart from the value so clearing the color picker doesn't switch back to "From image"
+  const [isCustomTint, setIsCustomTint] = useState(Boolean(value.tintColor));
+  const handleTintSourceChange = (source) => {
+    const isCustom = source === 'CUSTOM';
+    setIsCustomTint(isCustom);
+    updateStyle('tintColor', isCustom ? value.tintColor || DEFAULT_CUSTOM_TINT : null);
+  };
 
   const isZoomed = value.zoom > 100;
   const centerLabel = t('episode_artwork_center', { defaultValue: 'Center' });
@@ -276,12 +285,44 @@ const EpisodeArtworkSettings = ({ value, onChange, feedType, feedId, feedCoverUr
                 value={value.blur}
                 onChange={(blur) => updateStyle('blur', blur)}
               />
-              <PercentSlider
+              <Input.Wrapper
                 label={t('episode_artwork_tint', { defaultValue: 'Color wash' })}
                 description={t('episode_artwork_tint_desc', {
-                  defaultValue:
-                    'Tints the background with a deeper shade of the image’s own colors.',
+                  defaultValue: 'Tints the background, strongest at its outer edge.',
                 })}
+              >
+                <Stack gap="xs" mt={6}>
+                  <SegmentedControl
+                    fullWidth
+                    size="xs"
+                    value={isCustomTint ? 'CUSTOM' : 'AUTO'}
+                    onChange={handleTintSourceChange}
+                    data={[
+                      {
+                        value: 'AUTO',
+                        label: t('episode_artwork_tint_auto', { defaultValue: 'From image' }),
+                      },
+                      {
+                        value: 'CUSTOM',
+                        label: t('episode_artwork_tint_custom', { defaultValue: 'Custom color' }),
+                      },
+                    ]}
+                  />
+                  {isCustomTint && (
+                    <ColorInput
+                      aria-label={t('episode_artwork_tint_custom', {
+                        defaultValue: 'Custom color',
+                      })}
+                      format="hex"
+                      swatches={COLOR_SWATCHES}
+                      value={value.tintColor || ''}
+                      onChange={(tintColor) => updateStyle('tintColor', tintColor || null)}
+                    />
+                  )}
+                </Stack>
+              </Input.Wrapper>
+              <PercentSlider
+                label={t('episode_artwork_tint_intensity', { defaultValue: 'Wash intensity' })}
                 value={value.tint}
                 onChange={(tint) => updateStyle('tint', tint)}
               />

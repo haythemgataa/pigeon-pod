@@ -221,6 +221,18 @@ class EpisodeCoverRendererTest {
     assertColorClose(MIDDLE, result.getRGB(160, 317));
   }
 
+  @Test
+  void customWashColorTintsTheBand() {
+    BufferedImage result = EpisodeCoverRenderer.render(landscapeThumbnail(), style(
+        "{\"mode\":\"PAD\",\"fill\":\"PROGRESSIVE\",\"tint\":100,"
+            + "\"tintColor\":\"#ff0000\",\"position\":0}"), 0);
+
+    Color bottom = new Color(result.getRGB(160, 318));
+    assertTrue(bottom.getRed() > 200 && bottom.getGreen() < 80 && bottom.getBlue() < 80,
+        "the far end of the band should be close to the wash color but was " + bottom);
+    assertColorClose(MIDDLE, result.getRGB(160, 40));
+  }
+
   private static int brightness(int rgb) {
     Color color = new Color(rgb);
     return (color.getRed() + color.getGreen() + color.getBlue()) / 3;

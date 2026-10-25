@@ -31,6 +31,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import org.springframework.util.StringUtils;
+import top.asimov.pigeon.util.EpisodeDescriptionTemplate;
 import top.asimov.pigeon.util.YtDlpArgsValidator;
 
 public abstract class AbstractFeedService<F extends Feed> {
@@ -130,6 +131,8 @@ public abstract class AbstractFeedService<F extends Feed> {
     existingFeed.setYtDlpArgs(normalizeFeedYtDlpArgs(configuration.getYtDlpArgs()));
     existingFeed.setEpisodeCoverStyle(
         EpisodeCoverStyle.normalizeForStorage(configuration.getEpisodeCoverStyle()));
+    existingFeed.setEpisodeDescriptionTemplate(
+        EpisodeDescriptionTemplate.normalize(configuration.getEpisodeDescriptionTemplate()));
     applyAdditionalMutableFields(existingFeed, configuration);
   }
 
@@ -147,6 +150,8 @@ public abstract class AbstractFeedService<F extends Feed> {
     normalizeAutoDownloadDelay(feed);
     feed.setYtDlpArgs(normalizeFeedYtDlpArgs(feed.getYtDlpArgs()));
     feed.setEpisodeCoverStyle(EpisodeCoverStyle.normalizeForStorage(feed.getEpisodeCoverStyle()));
+    feed.setEpisodeDescriptionTemplate(
+        EpisodeDescriptionTemplate.normalize(feed.getEpisodeDescriptionTemplate()));
     return saveFeedAsync(feed);
   }
 

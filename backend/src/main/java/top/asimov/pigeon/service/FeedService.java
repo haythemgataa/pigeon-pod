@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import top.asimov.pigeon.config.AppBaseUrlResolver;
 import top.asimov.pigeon.exception.BusinessException;
 import top.asimov.pigeon.helper.BilibiliResolverHelper;
+import top.asimov.pigeon.mapper.EpisodeMapper;
 import top.asimov.pigeon.model.entity.Channel;
 import top.asimov.pigeon.model.entity.Episode;
 import top.asimov.pigeon.model.entity.Feed;
@@ -41,12 +42,15 @@ public class FeedService {
   private final AppBaseUrlResolver appBaseUrlResolver;
   private final SystemConfigService systemConfigService;
   private final EpisodeCoverService episodeCoverService;
+  private final RssService rssService;
+  private final EpisodeMapper episodeMapper;
 
   public FeedService(ChannelService channelService, PlaylistService playlistService,
       MessageSource messageSource, MediaService mediaService, ObjectMapper objectMapper,
       BilibiliResolverHelper bilibiliResolverHelper, AccountService accountService,
       AppBaseUrlResolver appBaseUrlResolver, SystemConfigService systemConfigService,
-      EpisodeCoverService episodeCoverService) {
+      EpisodeCoverService episodeCoverService, RssService rssService,
+      EpisodeMapper episodeMapper) {
     this.channelService = channelService;
     this.playlistService = playlistService;
     this.messageSource = messageSource;
@@ -57,6 +61,8 @@ public class FeedService {
     this.appBaseUrlResolver = appBaseUrlResolver;
     this.systemConfigService = systemConfigService;
     this.episodeCoverService = episodeCoverService;
+    this.rssService = rssService;
+    this.episodeMapper = episodeMapper;
   }
 
   public FeedType resolveType(String rawType) {
@@ -188,6 +194,17 @@ public class FeedService {
 
   public byte[] previewEpisodeCover(FeedType type, String id, String episodeId, String style) {
     return episodeCoverService.renderPreview(type, id, episodeId, style);
+  }
+
+  /** One episode's RSS description under a description format that is still being edited. */
+  public String previewEpisodeDescription(FeedType type, String id, String episodeId,
+      String template) {
+    Feed feed = detail(type, id);
+    Episode episode = StringUtils.hasText(episodeId) ? episodeMapper.selectById(episodeId) : null;
+    if (feed == null || episode == null) {
+      throw new BusinessException("Episode not found");
+    }
+    return rssService.previewEpisodeDescription(feed, episode, template);
   }
 
   public void updateCustomCover(FeedType type, String id, MultipartFile file) throws IOException {

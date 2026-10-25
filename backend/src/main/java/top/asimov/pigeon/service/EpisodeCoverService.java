@@ -105,7 +105,38 @@ public class EpisodeCoverService {
         + "/media/feed/" + feed.getType().name().toLowerCase(Locale.ROOT)
         + "/" + UriUtils.encodePathSegment(feed.getId(), StandardCharsets.UTF_8)
         + "/episodes/" + UriUtils.encodePathSegment(episode.getId(), StandardCharsets.UTF_8)
-        + "/cover.jpg?v=" + style.fingerprint();
+        + "/cover.jpg?v=" + style.fingerprint()
+        + mediaService.customCoverVersionQuery(episode).replace("?v=", "-");
+  }
+
+  /** Drops every cached cover of one episode, e.g. after its thumbnail was replaced. */
+  public void evictEpisode(String episodeId) {
+    previewSources.remove(episodeId);
+    Path root = Path.of(mediaPathProperties.getCoverFilePath(), CACHE_DIRECTORY);
+    if (!Files.isDirectory(root)) {
+      return;
+    }
+    String prefix = safeFileName(episodeId) + "-";
+    try (DirectoryStream<Path> feeds = Files.newDirectoryStream(root, Files::isDirectory)) {
+      for (Path feedDirectory : feeds) {
+        try (DirectoryStream<Path> covers = Files.newDirectoryStream(feedDirectory,
+            entry -> isCachedCoverOf(entry, prefix))) {
+          for (Path cover : covers) {
+            Files.deleteIfExists(cover);
+          }
+        }
+      }
+    } catch (IOException e) {
+      log.warn("[media] episode cover cache eviction failed: episodeId={} reason={}", episodeId,
+          e.getMessage());
+    }
+  }
+
+  /** Cache files are {@code <episodeId>-<10 hex fingerprint>.jpg}. */
+  private static boolean isCachedCoverOf(Path entry, String prefix) {
+    String name = entry.getFileName().toString();
+    return name.startsWith(prefix)
+        && name.substring(prefix.length()).matches("[0-9a-f]{10}\\.jpg");
   }
 
   public ResponseEntity<?> buildCoverResponse(String type, String feedId, String episodeId) {

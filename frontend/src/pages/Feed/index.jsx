@@ -45,6 +45,7 @@ import {
   IconHeadphones,
   IconSearch,
   IconShare3,
+  IconPencil,
 } from '@tabler/icons-react';
 import {
   API,
@@ -61,6 +62,14 @@ import CopyModal from '../../components/CopyModal';
 import EditFeedModal from '../../components/EditFeedModal';
 import FeedHeader from '../../components/FeedHeader';
 import EpisodeArtworkSettings from '../../components/EpisodeArtworkSettings';
+import EpisodeDescriptionSettings from '../../components/EpisodeDescriptionSettings';
+import EpisodeEditModal from '../../components/EpisodeEditModal';
+import {
+  episodeCoverSrc,
+  episodeDescription,
+  episodeTitle,
+  isEpisodeCustomized,
+} from '../../helpers/episodeDisplay.js';
 import {
   parseEpisodeCoverStyle,
   serializeEpisodeCoverStyle,
@@ -115,6 +124,8 @@ const FeedDetail = () => {
   const [editingDescription, setEditingDescription] = useState('');
   const [editingLanguage, setEditingLanguage] = useState('');
   const [editingCoverStyle, setEditingCoverStyle] = useState(() => parseEpisodeCoverStyle(null));
+  const [editingDescriptionTemplate, setEditingDescriptionTemplate] = useState(null);
+  const [editingEpisode, setEditingEpisode] = useState(null);
   const [customCoverFile, setCustomCoverFile] = useState(null);
 
   const podcastLanguageSelectData = useMemo(() => {
@@ -357,7 +368,10 @@ const FeedDetail = () => {
       author: editingAuthor,
       customDescription: editingDescription,
       language: editingLanguage || null,
-      ...(!isUnified && { episodeCoverStyle: serializeEpisodeCoverStyle(editingCoverStyle) }),
+      ...(!isUnified && {
+        episodeCoverStyle: serializeEpisodeCoverStyle(editingCoverStyle),
+        episodeDescriptionTemplate: editingDescriptionTemplate,
+      }),
     });
 
     const { code, msg } = res.data;
@@ -642,6 +656,24 @@ const FeedDetail = () => {
     }
   };
 
+  const handleEpisodeCustomized = (updated) => {
+    if (!updated) return;
+    const overrides = {
+      customTitle: updated.customTitle,
+      customDescription: updated.customDescription,
+      customCoverExt: updated.customCoverExt,
+      customizedAt: updated.customizedAt,
+    };
+    setEpisodes((prevEpisodes) =>
+      prevEpisodes.map((episode) =>
+        episode.id === updated.id ? { ...episode, ...overrides } : episode,
+      ),
+    );
+    setEditingEpisode((current) =>
+      current && current.id === updated.id ? { ...current, ...overrides } : current,
+    );
+  };
+
   const handleEditAppearance = () => {
     if (!feed) {
       return;
@@ -651,6 +683,7 @@ const FeedDetail = () => {
     setEditingDescription(feed.customDescription || '');
     setEditingLanguage(feed.language || '');
     setEditingCoverStyle(parseEpisodeCoverStyle(feed.episodeCoverStyle));
+    setEditingDescriptionTemplate(feed.episodeDescriptionTemplate || null);
     openCustomizeFeedModal();
   };
 
@@ -864,7 +897,7 @@ const FeedDetail = () => {
       }
 
       const shareUrl = data;
-      const shareTitle = episode.title || t('share_episode', { defaultValue: 'Share' });
+      const shareTitle = episodeTitle(episode) || t('share_episode', { defaultValue: 'Share' });
       const canUseNativeShare =
         typeof navigator !== 'undefined' &&
         typeof navigator.share === 'function' &&
@@ -1112,8 +1145,8 @@ const FeedDetail = () => {
                       <AspectRatio ratio={16 / 9}>
                         <Image
                           radius="md"
-                          src={episode.maxCoverUrl || episode.defaultCoverUrl}
-                          alt={episode.title}
+                          src={episodeCoverSrc(episode)}
+                          alt={episodeTitle(episode)}
                           referrerPolicy="no-referrer"
                           fit="cover"
                         />
@@ -1238,11 +1271,11 @@ const FeedDetail = () => {
                           size={isSmallScreen ? 'sm' : 'md'}
                           lineClamp={1}
                           w="90%"
-                          title={episode.title}
+                          title={episodeTitle(episode)}
                           c="inherit"
                           styles={{cursor: 'pointer'}}
                         >
-                          {episode.title}
+                          {episodeTitle(episode)}
                         </Text>
                         <Text size="sm">
                           {episode.publishedAt
@@ -1287,14 +1320,28 @@ const FeedDetail = () => {
                               </Badge>
                             )
                           ) : null}
-                          {episode.description
-                            ? episode.description
-                            : t('no_description_available')}
+                          {episodeDescription(episode) || t('no_description_available')}
                         </Text>
                       </Box>
 
                       <Group justify="flex-end" align="center" wrap="wrap">
                         <Group>
+                          {isEpisodeCustomized(episode) ? (
+                            <Badge size="sm" variant="light" color="gray">
+                              {t('episode_edited', { defaultValue: 'Edited' })}
+                            </Badge>
+                          ) : null}
+                          {isAdmin && !isUnified ? (
+                            <Button
+                              size="compact-xs"
+                              variant="outline"
+                              color="gray"
+                              onClick={() => setEditingEpisode(episode)}
+                              leftSection={<IconPencil size={16} />}
+                            >
+                              {t('episode_edit_button', { defaultValue: 'Edit' })}
+                            </Button>
+                          ) : null}
                           {episode.downloadStatus === 'COMPLETED' ? (
                             <Button
                               size="compact-xs"
@@ -1619,6 +1666,13 @@ const FeedDetail = () => {
         }
       />
 
+      <EpisodeEditModal
+        opened={Boolean(editingEpisode)}
+        onClose={() => setEditingEpisode(null)}
+        episode={editingEpisode}
+        onSaved={handleEpisodeCustomized}
+      />
+
       {/* Copy Modal for manual copy */}
       <CopyModal
         opened={copyModalOpened}
@@ -1704,6 +1758,15 @@ const FeedDetail = () => {
               feedType={type}
               feedId={feedId}
               feedCoverUrl={feed.customCoverUrl || feed.coverUrl}
+              episodes={episodes}
+            />
+          )}
+          {!isUnified && (
+            <EpisodeDescriptionSettings
+              value={editingDescriptionTemplate}
+              onChange={setEditingDescriptionTemplate}
+              feedType={type}
+              feedId={feedId}
               episodes={episodes}
             />
           )}

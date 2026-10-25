@@ -603,6 +603,64 @@ class RssServiceTest {
     verify(mediaService, never()).resolveEpisodeCoverUrlForRss(any(), any());
   }
 
+  @Test
+  void testEpisodeOverridesReplaceTitleAndDescription() throws Exception {
+    Channel channel = coverStyleChannel(null);
+    Episode episode = coverStyleEpisode();
+    episode.setDescription("Original description");
+    episode.setCustomTitle("Edited title");
+    episode.setCustomDescription("Edited description");
+    stubChannelFeed(channel, episode);
+
+    String rssXml = rssService.generateRssFeed("ytchannel");
+
+    assertTrue(rssXml.contains("<title>Edited title</title>"), rssXml);
+    assertFalse(rssXml.contains("Episode With Styled Cover"));
+    assertTrue(rssXml.contains("Edited description"));
+    assertFalse(rssXml.contains("Original description"));
+    assertTrue(rssXml.contains("Source video:"), "default format still adds the source link");
+  }
+
+  @Test
+  void testDescriptionFormatCanKeepOnlyTheOriginalDescription() throws Exception {
+    Channel channel = coverStyleChannel(null);
+    channel.setEpisodeDescriptionTemplate("{description}");
+    Episode episode = coverStyleEpisode();
+    episode.setDescription("Just the original");
+    stubChannelFeed(channel, episode);
+
+    String rssXml = rssService.generateRssFeed("ytchannel");
+
+    assertTrue(rssXml.contains("Just the original"));
+    assertFalse(rssXml.contains("Source video:"));
+  }
+
+  @Test
+  void testDescriptionFormatFillsPlaceholders() throws Exception {
+    Channel channel = coverStyleChannel(null);
+    channel.setEpisodeDescriptionTemplate("{title} | {channel} | {date}\n{source_url}");
+    Episode episode = coverStyleEpisode();
+    stubChannelFeed(channel, episode);
+
+    String rssXml = rssService.generateRssFeed("ytchannel");
+
+    assertTrue(rssXml.contains(
+        "Episode With Styled Cover | Test Channel | 2026-10-01<br/>https://youtu.be/video_003"),
+        rssXml);
+  }
+
+  @Test
+  void testPreviewEpisodeDescriptionUsesTheGivenFormat() {
+    Channel channel = coverStyleChannel(null);
+    Episode episode = coverStyleEpisode();
+    episode.setDescription("Original");
+
+    assertEquals("Original", rssService.previewEpisodeDescription(channel, episode,
+        "{description}"));
+    assertTrue(rssService.previewEpisodeDescription(channel, episode, "  ")
+        .startsWith("Original\n\nSource video: <a href=\"https://youtu.be/video_003\">"));
+  }
+
   private Channel coverStyleChannel(String episodeCoverStyle) {
     Channel channel = new Channel();
     channel.setId("ytchannel");

@@ -121,6 +121,15 @@ public class FeedController {
   }
 
   @SaCheckRole("admin")
+  @PostMapping("/{type}/{id}/episode-description/preview")
+  public SaResult previewEpisodeDescription(@PathVariable String type, @PathVariable String id,
+      @RequestBody Map<String, String> payload) {
+    FeedType feedType = feedService.resolveType(type);
+    return SaResult.data(feedService.previewEpisodeDescription(feedType, id,
+        payload.get("episodeId"), payload.get("template")));
+  }
+
+  @SaCheckRole("admin")
   @PostMapping("/fetch")
   public SaResult fetch(@RequestBody Map<String, String> request) {
     return SaResult.data(feedService.fetch(request));
